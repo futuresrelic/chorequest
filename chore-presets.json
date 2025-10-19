@@ -1,0 +1,443 @@
+{
+  "morning_routine": [
+    {
+      "title": "Make Bed",
+      "description": "Straighten sheets, fluff pillows, make bed look neat",
+      "default_points": 5,
+      "requires_approval": 0,
+      "recurrence_type": "daily",
+      "start_date": "today"
+    },
+    {
+      "title": "Get Dressed",
+      "description": "Put on clean clothes appropriate for the day",
+      "default_points": 3,
+      "requires_approval": 0,
+      "recurrence_type": "daily",
+      "start_date": "today"
+    },
+    {
+      "title": "Brush Teeth (Morning)",
+      "description": "Brush teeth for 2 minutes",
+      "default_points": 3,
+      "requires_approval": 0,
+      "recurrence_type": "daily",
+      "start_date": "today"
+    },
+    {
+      "title": "Eat Breakfast",
+      "description": "Eat a healthy breakfast",
+      "default_points": 3,
+      "requires_approval": 0,
+      "recurrence_type": "daily",
+      "start_date": "today"
+    },
+    {
+      "title": "Pack School Bag",
+      "description": "Pack backpack with homework, books, and supplies",
+      "default_points": 5,
+      "requires_approval": 0,
+      "recurrence_type": "daily",
+      "recurrence_value": "1,2,3,4,5",
+      "start_date": "today"
+    },
+    {
+      "title": "Pack Lunch",
+      "description": "Prepare and pack lunch for school",
+      "default_points": 5,
+      "requires_approval": 0,
+      "recurrence_type": "daily",
+      "recurrence_value": "1,2,3,4,5",
+      "start_date": "today"
+    },
+    {
+      "title": "Comb/Style Hair",
+      "description": "Brush and style hair neatly",
+      "default_points": 3,
+      "requires_approval": 0,
+      "recurrence_type": "daily",
+      "start_date": "today"
+    }
+  ],
+  "evening_routine": [
+    {
+      "title": "Brush Teeth (Evening)",
+      "description": "Brush teeth for 2 minutes before bed",
+      "default_points": 3,
+      "requires_approval": 0,
+      "recurrence_type": "daily",
+      "start_date": "today"
+    },
+    {
+      "title": "Lay Out Tomorrow's Clothes",
+      "description": "Pick out and lay out clothes for tomorrow",
+      "default_points": 5,
+      "requires_approval": 0,
+      "recurrence_type": "daily",
+      "recurrence_value": "0,1,2,3,4",
+      "start_date": "today"
+    },
+    {
+      "title": "Put Dirty Clothes in Hamper",
+      "description": "Put today's dirty clothes in the laundry hamper",
+      "default_points": 3,
+      "requires_approval": 0,
+      "recurrence_type": "daily",
+      "start_date": "today"
+    },
+    {
+      "title": "Read for 20 Minutes",
+      "description": "Read a book for at least 20 minutes",
+      "default_points": 10,
+      "requires_approval": 0,
+      "recurrence_type": "daily",
+      "start_date": "today"
+    },
+    {
+      "title": "Charge Devices",
+      "description": "Plug in phone, tablet, etc. to charge overnight",
+      "default_points": 3,
+      "requires_approval": 0,
+      "recurrence_type": "daily",
+      "start_date": "today"
+    }
+  ],
+  "room_chores": [
+    {
+      "title": "Clean Room",
+      "description": "Pick up items, organize, make room tidy",
+      "default_points": 15,
+      "requires_approval": 1,
+      "recurrence_type": "daily",
+      "start_date": "today"
+    },
+    {
+      "title": "Put Away Toys/Books",
+      "description": "Return all toys and books to their proper places",
+      "default_points": 10,
+      "requires_approval": 0,
+      "recurrence_type": "daily",
+      "start_date": "today"
+    },
+    {
+      "title": "Vacuum Room",
+      "description": "Vacuum entire bedroom floor",
+      "default_points": 20,
+      "requires_approval": 1,
+      "recurrence_type": "weekly",
+      "recurrence_value": "6",
+      "start_date": "today"
+    },
+    {
+      "title": "Dust Furniture",
+      "description": "Dust all furniture surfaces in room",
+      "default_points": 15,
+      "requires_approval": 1,
+      "recurrence_type": "weekly",
+      "recurrence_value": "6",
+      "start_date": "today"
+    },
+    {
+      "title": "Empty Trash Can",
+      "description": "Empty bedroom trash can into main trash",
+      "default_points": 10,
+      "requires_approval": 0,
+      "recurrence_type": "weekly",
+      "recurrence_value": "0",
+      "start_date": "today"
+    }
+  ],
+  "pet_care": [
+    {
+      "title": "Pick Up Dog Poop",
+      "description": "Clean up poop in yard or designated area",
+      "default_points": 15,
+      "requires_approval": 1,
+      "recurrence_type": "daily",
+      "start_date": "today"
+    },
+    {
+      "title": "Fill Water Bowl (Morning)",
+      "description": "Refill pet's water bowl with fresh water",
+      "default_points": 5,
+      "requires_approval": 0,
+      "recurrence_type": "daily",
+      "start_date": "today"
+    },
+    {
+      "title": "Fill Water Bowl (Evening)",
+      "description": "Refill pet's water bowl with fresh water",
+      "default_points": 5,
+      "requires_approval": 0,
+      "recurrence_type": "daily",
+      "start_date": "today"
+    },
+    {
+      "title": "Fill Food Bowl (Morning)",
+      "description": "Feed pet the right amount of food",
+      "default_points": 5,
+      "requires_approval": 0,
+      "recurrence_type": "daily",
+      "start_date": "today"
+    },
+    {
+      "title": "Fill Food Bowl (Evening)",
+      "description": "Feed pet the right amount of food",
+      "default_points": 5,
+      "requires_approval": 0,
+      "recurrence_type": "daily",
+      "start_date": "today"
+    },
+    {
+      "title": "Walk Dog (10+ minutes)",
+      "description": "Take dog for a proper walk",
+      "default_points": 20,
+      "requires_approval": 1,
+      "recurrence_type": "daily",
+      "start_date": "today"
+    },
+    {
+      "title": "Brush/Groom Pet",
+      "description": "Brush pet's fur and check for any issues",
+      "default_points": 15,
+      "requires_approval": 1,
+      "recurrence_type": "weekly",
+      "recurrence_value": "0",
+      "start_date": "today"
+    },
+    {
+      "title": "Clean Pet Area",
+      "description": "Clean pet's sleeping area, toys, and space",
+      "default_points": 10,
+      "requires_approval": 1,
+      "recurrence_type": "daily",
+      "start_date": "today"
+    }
+  ],
+  "kitchen_help": [
+    {
+      "title": "Set Table",
+      "description": "Set plates, utensils, and cups for meal",
+      "default_points": 5,
+      "requires_approval": 0,
+      "recurrence_type": "daily",
+      "start_date": "today"
+    },
+    {
+      "title": "Clear Table",
+      "description": "Clear dishes and wipe table after meal",
+      "default_points": 5,
+      "requires_approval": 0,
+      "recurrence_type": "daily",
+      "start_date": "today"
+    },
+    {
+      "title": "Load Dishwasher",
+      "description": "Load dirty dishes into dishwasher properly",
+      "default_points": 10,
+      "requires_approval": 0,
+      "recurrence_type": "daily",
+      "start_date": "today"
+    },
+    {
+      "title": "Unload Dishwasher",
+      "description": "Put away clean dishes from dishwasher",
+      "default_points": 10,
+      "requires_approval": 0,
+      "recurrence_type": "daily",
+      "start_date": "today"
+    },
+    {
+      "title": "Wipe Counters",
+      "description": "Wipe down kitchen counters and table",
+      "default_points": 8,
+      "requires_approval": 0,
+      "recurrence_type": "daily",
+      "start_date": "today"
+    },
+    {
+      "title": "Sweep Kitchen Floor",
+      "description": "Sweep entire kitchen floor",
+      "default_points": 12,
+      "requires_approval": 1,
+      "recurrence_type": "daily",
+      "start_date": "today"
+    },
+    {
+      "title": "Take Out Trash",
+      "description": "Take kitchen trash to outside bin",
+      "default_points": 10,
+      "requires_approval": 0,
+      "recurrence_type": "daily",
+      "start_date": "today"
+    }
+  ],
+  "bonus_chores": [
+    {
+      "title": "Water Plants",
+      "description": "Water all indoor and outdoor plants",
+      "default_points": 10,
+      "requires_approval": 0,
+      "recurrence_type": "weekly",
+      "recurrence_value": "2,6",
+      "start_date": "today"
+    },
+    {
+      "title": "Sort Recycling",
+      "description": "Sort recycling into proper bins",
+      "default_points": 15,
+      "requires_approval": 1,
+      "recurrence_type": "weekly",
+      "recurrence_value": "0",
+      "start_date": "today"
+    },
+    {
+      "title": "Help with Laundry",
+      "description": "Fold and put away clean laundry",
+      "default_points": 20,
+      "requires_approval": 1,
+      "recurrence_type": "weekly",
+      "recurrence_value": "0",
+      "start_date": "today"
+    },
+    {
+      "title": "Wash Car",
+      "description": "Wash and dry family car",
+      "default_points": 50,
+      "requires_approval": 1,
+      "recurrence_type": "monthly",
+      "start_date": "today"
+    },
+    {
+      "title": "Rake Leaves",
+      "description": "Rake leaves in yard",
+      "default_points": 40,
+      "requires_approval": 1,
+      "recurrence_type": "once",
+      "start_date": "today"
+    },
+    {
+      "title": "Shovel Snow",
+      "description": "Shovel driveway and walkway",
+      "default_points": 50,
+      "requires_approval": 1,
+      "recurrence_type": "once",
+      "start_date": "today"
+    },
+    {
+      "title": "Wash Windows",
+      "description": "Clean inside and outside of windows",
+      "default_points": 30,
+      "requires_approval": 1,
+      "recurrence_type": "monthly",
+      "start_date": "today"
+    }
+  ],
+  "rewards": [
+    {
+      "title": "Extra 30 mins Screen Time",
+      "description": "Get 30 extra minutes of screen time today",
+      "cost_points": 50
+    },
+    {
+      "title": "Choose Dinner",
+      "description": "Pick what the family has for dinner",
+      "cost_points": 75
+    },
+    {
+      "title": "Stay Up 30 Mins Late",
+      "description": "Stay up 30 minutes past bedtime",
+      "cost_points": 100
+    },
+    {
+      "title": "Pick Family Movie",
+      "description": "Choose the movie for family movie night",
+      "cost_points": 100
+    },
+    {
+      "title": "Skip One Chore",
+      "description": "Skip one chore tomorrow (approved chores only)",
+      "cost_points": 125
+    },
+    {
+      "title": "Friend Sleepover",
+      "description": "Have a friend sleep over on the weekend",
+      "cost_points": 150
+    },
+    {
+      "title": "Ice Cream Outing",
+      "description": "Trip to ice cream shop",
+      "cost_points": 200
+    },
+    {
+      "title": "$5 Allowance",
+      "description": "Get $5 cash allowance",
+      "cost_points": 250
+    },
+    {
+      "title": "New Book or Magazine",
+      "description": "Choose a new book or magazine",
+      "cost_points": 300
+    },
+    {
+      "title": "Mini Golf or Bowling",
+      "description": "Trip to mini golf or bowling alley",
+      "cost_points": 350
+    },
+    {
+      "title": "Pizza Night Out",
+      "description": "Family pizza dinner at restaurant",
+      "cost_points": 400
+    },
+    {
+      "title": "Movie Theater Trip",
+      "description": "See a movie at the theater with snacks",
+      "cost_points": 500
+    },
+    {
+      "title": "$10 Gift Card",
+      "description": "Amazon, iTunes, or store gift card",
+      "cost_points": 600
+    },
+    {
+      "title": "New Video Game",
+      "description": "Choose a new video game",
+      "cost_points": 750
+    },
+    {
+      "title": "Trampoline Park Trip",
+      "description": "Visit to trampoline park for 1 hour",
+      "cost_points": 800
+    },
+    {
+      "title": "New Toy (Under $25)",
+      "description": "Pick out a toy under $25",
+      "cost_points": 1000
+    },
+    {
+      "title": "Theme Park Day Trip",
+      "description": "Full day at an amusement park",
+      "cost_points": 1200
+    },
+    {
+      "title": "Bike Accessory or Sports Gear",
+      "description": "New equipment for your hobby",
+      "cost_points": 1500
+    },
+    {
+      "title": "AAA Video Game",
+      "description": "New release video game",
+      "cost_points": 2000
+    },
+    {
+      "title": "Weekend Camping Trip",
+      "description": "Family camping adventure",
+      "cost_points": 2500
+    },
+    {
+      "title": "New Tablet or Tech Gadget",
+      "description": "Choose a new tech device",
+      "cost_points": 3000
+    }
+  ]
+}

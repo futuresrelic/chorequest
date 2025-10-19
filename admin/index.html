@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Family Chores - Admin</title>
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/x-icon" href="/assets/admin-favicon.ico">
+    <link rel="shortcut icon" href="/assets/admin-favicon.ico">
+    
+    <link rel="stylesheet" href="admin.css">
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#4F46E5">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Chores Admin">
+    <link rel="apple-touch-icon" href="/assets/admin-icon-192.png">
+</head>
+<body>
+    <div id="login-screen" class="screen">
+        <div class="login-container">
+            <div class="logo">
+                <img src="/assets/admin-icon-192.png" alt="Family Chores" style="width: 32px; height: 32px;">
+                <h1>Family Chores</h1>
+            </div>
+            <h1>Family Chores Admin</h1>
+            <form id="login-form">
+                <input type="email" id="login-email" placeholder="Email" required>
+                <input type="password" id="login-password" placeholder="Password" required>
+                <button type="submit">Login</button>
+                <div id="login-error" class="error-message"></div>
+            </form>
+        </div>
+    </div>
+
+    <div id="app-screen" class="screen hidden">
+        <header>
+            <div class="header-left">
+                <div class="logo">
+                    <img src="/assets/admin-icon-192.png" alt="Family Chores Logo" width="32" height="32">
+                    <h1>Family Chores</h1>
+                </div>
+            </div>
+            <div class="header-right">
+                <span id="admin-email"></span>
+                <span id="app-version" style="font-size: 11px; color: #999; margin-left: 10px;"></span>
+                <button id="logout-btn" class="secondary-btn">Logout</button>
+         </div>
+        </header>
+
+        <nav class="tabs">
+            <button class="tab-btn active" data-tab="dashboard">Dashboard</button>
+            <button class="tab-btn" data-tab="kids">Kids</button>
+          <button class="tab-btn" data-tab="chores">Chores</button>
+          <button class="tab-btn" data-tab="quests">Quests</button>
+           <button class="tab-btn" data-tab="rewards">Rewards</button>
+           <button class="tab-btn" data-tab="submissions">Submissions</button>
+           <button class="tab-btn" data-tab="redemptions">Redemptions</button>
+           <button class="tab-btn" data-tab="families">Families</button>
+           <button class="tab-btn" data-tab="settings">Settings</button>
+           <button class="tab-btn" data-tab="admins">Admins</button>
+           <button class="tab-btn" data-tab="setup-wizard">🧙‍♂️ Setup Wizard</button>
+        </nav>
+
+        <main>
+            <!-- Dashboard Tab -->
+            <section id="tab-dashboard" class="tab-content active">
+                <h2>Dashboard</h2>
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <h3>Pending Submissions</h3>
+                        <div class="stat-value" id="stat-submissions">0</div>
+                    </div>
+                    <div class="stat-card">
+                        <h3>Pending Redemptions</h3>
+                        <div class="stat-value" id="stat-redemptions">0</div>
+                    </div>
+                    <div class="stat-card">
+                        <h3>Pending Quest Tasks</h3>
+                        <div class="stat-value" id="stat-quests">0</div>
+                    </div>
+                    <div class="stat-card">
+                        <h3>Today's Completions</h3>
+                        <div class="stat-value" id="stat-today">0</div>
+                    </div>
+                </div>
+
+                <div class="dashboard-grid">
+                    <div class="dashboard-section">
+                        <h3>Streak Leaders</h3>
+                        <div id="streak-leaders"></div>
+                    </div>
+                    <div class="dashboard-section">
+                        <h3>Points Leaders</h3>
+                        <div id="points-leaders"></div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Kids Tab -->
+            <section id="tab-kids" class="tab-content">
+                <div class="section-header">
+                    <h2>Kids</h2>
+                    <button id="add-kid-btn" class="primary-btn">Add Kid</button>
+                </div>
+                <div id="kids-list" class="list-container"></div>
+
+                <h3 style="margin-top: 40px;">Pairing Codes</h3>
+                <div id="pairing-codes-list" class="list-container"></div>
+
+                <h3 style="margin-top: 40px;">Paired Devices</h3>
+                <div id="devices-list" class="list-container"></div>
+            </section>
+
+            <!-- Chores Tab -->
+            <section id="tab-chores" class="tab-content">
+                <div class="section-header">
+                    <h2>Chores</h2>
+                    <button id="add-chore-btn" class="primary-btn">Add Chore</button>
+                </div>
+                <div id="chores-list" class="list-container"></div>
+            </section>
+
+            <!-- Quests Tab -->
+            <section id="tab-quests" class="tab-content">
+                <div class="section-header">
+                    <h2>Quests</h2>
+                    <button id="add-quest-btn" class="primary-btn">Add Quest</button>
+                </div>
+                <div id="quests-list" class="list-container"></div>
+            </section>
+
+            <!-- Rewards Tab -->
+            <section id="tab-rewards" class="tab-content">
+                <div class="section-header">
+                    <h2>Rewards</h2>
+                    <button id="add-reward-btn" class="primary-btn">Add Reward</button>
+                </div>
+                <div id="rewards-list" class="list-container"></div>
+            </section>
+
+            <!-- Submissions Tab -->
+            <section id="tab-submissions" class="tab-content">
+                <h2>Submissions for Review</h2>
+                <div class="filters">
+                    <button class="filter-btn active" data-status="pending">Pending</button>
+                    <button class="filter-btn" data-status="approved">Approved</button>
+                    <button class="filter-btn" data-status="rejected">Rejected</button>
+                </div>
+                <div id="submissions-list" class="list-container"></div>
+            </section>
+
+            <!-- Redemptions Tab -->
+            <section id="tab-redemptions" class="tab-content">
+               <h2>Reward Redemptions</h2>
+                <div class="filters">
+                    <button class="filter-btn-redemption active" data-status="pending">Pending</button>
+                   <button class="filter-btn-redemption" data-status="approved">Approved</button>
+                   <button class="filter-btn-redemption" data-status="rejected">Rejected</button>
+               </div>
+               <div id="redemptions-list" class="list-container"></div>
+            </section>
+            
+            <section id="tab-families" class="tab-content">
+                <h2>Family Groups</h2>
+                <button class="primary-btn" onclick="showAddFamilyModal()">+ Add Family</button>
+                <div id="families-list" class="list-container"></div>
+            </section>
+
+            <!-- Settings Tab -->
+            <section id="tab-settings" class="tab-content">
+                <h2>Settings</h2>
+                <div class="settings-container">
+                    <h3>Change Password</h3>
+                    <form id="change-password-form">
+                        <input type="password" id="current-password" placeholder="Current Password" required>
+                        <input type="password" id="new-password" placeholder="New Password (min 8 chars)" required>
+                        <button type="submit" class="primary-btn">Change Password</button>
+                        <div id="password-message" class="message"></div>
+                    </form>
+                </div>
+            </section>
+
+            <!-- Admins Tab -->
+            <section id="tab-admins" class="tab-content">
+                <h2>Admin Users</h2>
+                <button class="primary-btn" onclick="showAddAdminModal()">+ Add Admin</button>
+                <div id="admins-list" class="list-container"></div>
+            </section>
+            <!-- Setup Wizard Tab -->
+<section id="tab-setup-wizard" class="tab-content">
+    <h2>🧙‍♂️ Chore Setup Wizard</h2>
+    <p class="subtitle">Quickly set up preset chores and rewards for your family</p>
+    
+    <div class="wizard-container">
+        <!-- Step 1: Select Kid -->
+        <div class="wizard-step active" id="wizard-step-1">
+            <h3>Step 1: Who are these chores for?</h3>
+            <p>Select a kid to assign these chores to, or leave unassigned:</p>
+            
+            <div id="wizard-kid-selection" class="kid-selection">
+                <label class="kid-option">
+                    <input type="radio" name="wizard-kid" value="" checked>
+                    <span>Unassigned (I'll assign later)</span>
+                </label>
+            </div>
+            
+            <button class="btn btn-primary" onclick="wizardNext(2)">Next: Choose Chores →</button>
+        </div>
+        
+        <!-- Step 2: Select Chore Categories -->
+        <div class="wizard-step" id="wizard-step-2">
+            <h3>Step 2: Select Chore Categories</h3>
+            <p>Choose which preset chore categories to install:</p>
+            
+            <div class="preset-categories">
+                <label class="category-card">
+                    <input type="checkbox" name="category" value="morning_routine" checked>
+                    <div class="category-content">
+                        <h4>🌅 Morning Routine</h4>
+                        <p>7 daily chores: Make bed, get dressed, brush teeth, breakfast, pack bag, etc.</p>
+                        <span class="points-badge">~27 points/day</span>
+                    </div>
+                </label>
+                
+                <label class="category-card">
+                    <input type="checkbox" name="category" value="evening_routine" checked>
+                    <div class="category-content">
+                        <h4>🌙 Evening Routine</h4>
+                        <p>5 daily chores: Brush teeth, lay out clothes, read, charge devices, etc.</p>
+                        <span class="points-badge">~24 points/day</span>
+                    </div>
+                </label>
+                
+                <label class="category-card">
+                    <input type="checkbox" name="category" value="room_chores">
+                    <div class="category-content">
+                        <h4>🛏️ Room & Cleaning</h4>
+                        <p>5 chores: Clean room, vacuum, dust, organize, empty trash</p>
+                        <span class="points-badge">~185 points/week</span>
+                    </div>
+                </label>
+                
+                <label class="category-card">
+                    <input type="checkbox" name="category" value="pet_care">
+                    <div class="category-content">
+                        <h4>🐕 Pet Care ("PeePoop")</h4>
+                        <p>8 chores: Pick up poop, feed, water, walk dog, groom, clean area</p>
+                        <span class="points-badge">~70 points/day</span>
+                    </div>
+                </label>
+                
+                <label class="category-card">
+                    <input type="checkbox" name="category" value="kitchen_help">
+                    <div class="category-content">
+                        <h4>🍽️ Kitchen & Meals</h4>
+                        <p>7 chores: Set table, clear, dishes, sweep, wipe counters, trash</p>
+                        <span class="points-badge">~265 points/week</span>
+                    </div>
+                </label>
+                
+                <label class="category-card">
+                    <input type="checkbox" name="category" value="bonus_chores">
+                    <div class="category-content">
+                        <h4>⭐ Bonus & Special Tasks</h4>
+                        <p>7 big jobs: Wash car, rake leaves, shovel snow, laundry, etc.</p>
+                        <span class="points-badge">15-50 points each</span>
+                    </div>
+                </label>
+            </div>
+            
+            <div class="wizard-nav">
+                <button class="btn btn-secondary" onclick="wizardBack(1)">← Back</button>
+                <button class="btn btn-primary" onclick="wizardNext(3)">Next: Add Rewards →</button>
+            </div>
+        </div>
+        
+        <!-- Step 3: Install Rewards -->
+        <div class="wizard-step" id="wizard-step-3">
+            <h3>Step 3: Install Reward Tiers</h3>
+            <p>Add preset rewards for kids to redeem their points:</p>
+            
+            <label class="category-card">
+                <input type="checkbox" id="install-rewards" checked>
+                <div class="category-content">
+                    <h4>🎁 Complete Reward System</h4>
+                    <p>21 rewards across 4 tiers: Daily treats (50-150pts), Weekly rewards (200-500pts), Big rewards (600-1500pts), Mega rewards (2000-3000pts)</p>
+                    <div style="margin-top: 10px;">
+                        <span class="points-badge">Screen time • Movies • Allowance • Trips • Games • Tech</span>
+                    </div>
+                </div>
+            </label>
+            
+            <div class="wizard-nav">
+                <button class="btn btn-secondary" onclick="wizardBack(2)">← Back</button>
+                <button class="btn btn-success" onclick="installPresets()">🚀 Install Everything!</button>
+            </div>
+        </div>
+        
+        <!-- Step 4: Complete -->
+        <div class="wizard-step" id="wizard-step-4">
+            <div class="success-message">
+                <h3>✅ Setup Complete!</h3>
+                <p id="wizard-summary"></p>
+                
+                <div style="margin-top: 30px;">
+                    <button class="btn btn-primary" onclick="location.reload()">View Chores & Rewards</button>
+                    <button class="btn btn-secondary" onclick="resetWizard()">Set Up Another Kid</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+        </main>
+    </div>
+
+    <!-- Modal -->
+    <div id="modal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <div id="modal-body"></div>
+        </div>
+    </div>
+
+    <script>
+        // Auto-versioning system
+        fetch('/api/version.php')
+            .then(r => r.json())
+            .then(data => {
+                const script = document.createElement('script');
+                script.src = `admin.js?v=${data.timestamp}`;
+                document.body.appendChild(script);
+            })
+            .catch(() => {
+                // Fallback if version fetch fails
+                const script = document.createElement('script');
+                script.src = 'admin.js?v=' + Date.now();
+                document.body.appendChild(script);
+            });
+    </script>
+
+    <script>
+        if ('serviceWorker' in navigator) {
+          navigator.serviceWorker.register('/admin/sw.js')
+            .then(() => console.log('Service Worker Registered'))
+            .catch(err => console.log('Service Worker Registration Failed:', err));
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Download Family Chores Apps</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 800px;
+            width: 100%;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+            color: white;
+        }
+        
+        .header h1 {
+            font-size: 48px;
+            margin-bottom: 10px;
+            text-shadow: 0 2px 10px rgba(0,0,0,0.2);
+        }
+        
+        .header p {
+            font-size: 18px;
+            opacity: 0.9;
+        }
+        
+        .apps-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 30px;
+            margin-bottom: 40px;
+        }
+        
+        .app-card {
+            background: white;
+            border-radius: 20px;
+            padding: 40px 30px;
+            text-align: center;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        
+        .app-card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 30px 80px rgba(0,0,0,0.4);
+        }
+        
+        .app-icon {
+            width: 100px;
+            height: 100px;
+            margin: 0 auto 20px;
+            border-radius: 25px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.4);
+        }
+        
+        .app-icon img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        
+        .app-card h2 {
+            font-size: 28px;
+            color: #1a202c;
+            margin-bottom: 10px;
+        }
+        
+        .app-card p {
+            color: #718096;
+            margin-bottom: 25px;
+            line-height: 1.6;
+        }
+        
+        .download-btn {
+            display: inline-block;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            text-decoration: none;
+            padding: 15px 40px;
+            border-radius: 50px;
+            font-weight: 600;
+            font-size: 16px;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+        }
+        
+        .download-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+        }
+        
+        .app-card.kid .download-btn {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            box-shadow: 0 4px 15px rgba(245, 87, 108, 0.4);
+        }
+        
+        .app-card.kid .download-btn:hover {
+            box-shadow: 0 6px 20px rgba(245, 87, 108, 0.6);
+        }
+        
+        .features {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 30px;
+            color: white;
+            margin-top: 30px;
+        }
+        
+        .features h3 {
+            font-size: 20px;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+        
+        .features ul {
+            list-style: none;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+        }
+        
+        .features li {
+            padding: 10px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .features li::before {
+            content: "✓";
+            font-weight: bold;
+            font-size: 20px;
+        }
+        
+        .install-instructions {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 30px;
+            color: white;
+            margin-top: 20px;
+        }
+        
+        .install-instructions h3 {
+            font-size: 20px;
+            margin-bottom: 15px;
+        }
+        
+        .install-instructions ol {
+            padding-left: 25px;
+            line-height: 1.8;
+        }
+        
+        .install-instructions strong {
+            color: #ffd700;
+        }
+        
+        @media (max-width: 600px) {
+            .header h1 {
+                font-size: 32px;
+            }
+            
+            .apps-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <img src="/assets/admin-icon-192.png" alt="Family Chores" style="width: 100px; height: 100px; margin: 0 auto 20px; display: block; border-radius: 25px; box-shadow: 0 10px 30px rgba(0,0,0,0.3);">
+            <h1>Family Chores Apps</h1>
+            <p>Download and install as apps on any device</p>
+        </div>
+        
+        <div class="apps-grid">
+            <!-- Admin App -->
+            <div class="app-card admin">
+                <div class="app-icon">
+                    <img src="/assets/admin-icon-192.png" alt="Admin">
+                </div>
+                <h2>Admin Panel</h2>
+                <p>Manage chores, approve tasks, and track your family's progress</p>
+                <a href="/admin/" class="download-btn">Open Admin Panel</a>
+            </div>
+            
+            <!-- Kid App -->
+            <div class="app-card kid">
+                <div class="app-icon">
+                    <img src="/assets/kid-icon-192.png" alt="Kid">
+                </div>
+                <h2>Kid Panel</h2>
+                <p>Complete chores, earn points, and redeem awesome rewards</p>
+                <a href="/kid/" class="download-btn">Open Kid Panel</a>
+            </div>
+        </div>
+        
+        <div class="install-instructions">
+            <h3>📲 How to Install as an App</h3>
+            <ol>
+                <li>Click <strong>Open Admin Panel</strong> or <strong>Open Kid Panel</strong> above</li>
+                <li><strong>On iPhone/iPad:</strong> Tap the Share button (square with arrow) → "Add to Home Screen"</li>
+                <li><strong>On Android:</strong> Tap the menu (⋮) → "Install app" or "Add to Home Screen"</li>
+                <li><strong>On Desktop:</strong> Look for the install icon (➕ or ⬇️) in the address bar → Click "Install"</li>
+                <li>The app will appear on your home screen like any other app!</li>
+            </ol>
+        </div>
+        
+        <div class="features">
+            <h3>✨ Features</h3>
+            <ul>
+                <li>Works offline</li>
+                <li>Push notifications</li>
+                <li>Custom avatars</li>
+                <li>Points & rewards</li>
+                <li>Quest system</li>
+                <li>Streak tracking</li>
+                <li>Photo upload</li>
+                <li>Real-time sync</li>
+            </ul>
+        </div>
+    </div>
+</body>
+</html>

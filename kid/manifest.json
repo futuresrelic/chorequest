@@ -1,0 +1,24 @@
+{
+  "name": "Family Chores - Kid Panel",
+  "short_name": "My Chores",
+  "description": "Track and complete your daily chores",
+  "start_url": "/kid/index.html",
+  "display": "standalone",
+  "background_color": "#F3F4F6",
+  "theme_color": "#4F46E5",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/assets/kid-icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/assets/kid-icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
