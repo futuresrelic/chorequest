@@ -4,7 +4,7 @@ register_shutdown_function(function() {
     global $db;
     $db = null;
 });
-
+error_log("LIVE api.php loaded at " . date('c'));
 error_reporting(0);
 ini_set('display_errors', 0);
 
@@ -40,6 +40,18 @@ function requireAdmin() {
     if (!isset($_SESSION['admin_id'])) {
         jsonResponse(false, null, 'Unauthorized');
     }
+    
+    // Return admin info for use in the calling code
+    $db = getDb();
+    $stmt = $db->prepare("SELECT id as user_id, email FROM users WHERE id = ? AND role = 'admin'");
+    $stmt->execute([$_SESSION['admin_id']]);
+    $admin = $stmt->fetch();
+    
+    if (!$admin) {
+        jsonResponse(false, null, 'Unauthorized');
+    }
+    
+    return $admin;
 }
 
 function getKidFromToken() {
@@ -889,37 +901,49 @@ switch ($action) {
         break;
     
     case 'create_reward':
-        requireAdmin();
-        
+        $admin = requireAdmin();
+    
         $title = sanitize($input['title'] ?? '', 100);
         $description = sanitize($input['description'] ?? '', 1000);
         $costPoints = intval($input['cost_points'] ?? 50);
-        
+    
         if (!$title) {
             jsonResponse(false, null, 'Title is required');
         }
-        
+    
         $db = getDb();
         $stmt = $db->prepare("
-            INSERT INTO rewards (title, description, cost_points) 
-            VALUES (?, ?, ?)
+            INSERT INTO rewards (title, description, cost_points, created_by) 
+            VALUES (?, ?, ?, ?)
         ");
-        $stmt->execute([$title, $description, $costPoints]);
+        $stmt->execute([$title, $description, $costPoints, $admin['user_id']]);
         $rewardId = $db->lastInsertId();
-        
-        logAudit($_SESSION['admin_id'], 'create_reward', ['reward_id' => $rewardId]);
+    
+        logAudit($admin['user_id'], 'create_reward', ['reward_id' => $rewardId]);
         jsonResponse(true, ['id' => $rewardId]);
         break;
     
     case 'list_rewards':
         $db = getDb();
-        
+    
         if (isset($_SESSION['admin_id'])) {
-            $stmt = $db->query("SELECT * FROM rewards ORDER BY is_active DESC, cost_points");
+            $stmt = $db->query("
+                SELECT r.*, 
+                       COALESCE(r.available, 1) as available,
+                       COALESCE(r.created_by, 1) as created_by
+                FROM rewards r 
+                ORDER BY r.available DESC, r.cost_points
+            ");
         } else {
-            $stmt = $db->query("SELECT * FROM rewards WHERE is_active = 1 ORDER BY cost_points");
+            $stmt = $db->query("
+                SELECT r.*,
+                    COALESCE(r.available, 1) as available
+                FROM rewards r 
+                WHERE COALESCE(r.available, 1) = 1 
+                ORDER BY r.cost_points
+            ");
         }
-        
+    
         jsonResponse(true, $stmt->fetchAll());
         break;
     
