@@ -54,10 +54,19 @@
                 </div>
             </div>
             <button id="refresh-btn" class="icon-btn" title="Refresh">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/>
-                </svg>
-            </button>
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/>
+    </svg>
+</button>
+
+<!-- UPDATE BUTTON -->
+<button id="update-btn" class="icon-btn update-available" title="Update Available" style="display: none;">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+        <polyline points="7 10 12 15 17 10"></polyline>
+        <line x1="12" y1="15" x2="12" y2="3"></line>
+    </svg>
+</button>
         </header>
 
         <nav class="bottom-nav">
@@ -126,112 +135,112 @@
 <section id="view-settings" class="view">
     <h2>My Settings</h2>
     
+    <!-- Single Compact Card -->
     <div class="settings-section">
-        <h3>Profile</h3>
-        <div class="card">
-            <div class="setting-item">
-                <label for="name-color">Name Color</label>
-                <input type="color" id="name-color" value="#4F46E5">
+        <div class="card" style="padding: 16px;">
+            
+            <!-- Avatar Type - Horizontal -->
+            <div style="margin-bottom: 16px;">
+                <label style="display: block; font-weight: 600; margin-bottom: 8px; color: #374151; font-size: 14px;">Avatar</label>
+                <div style="display: flex; gap: 10px;">
+                    <div class="avatar-type-option active" data-avatar="logo" style="flex: 1; padding: 10px; border: 2px solid #E5E7EB; border-radius: 8px; cursor: pointer; text-align: center;">
+                        <div style="width: 50px; height: 50px; margin: 0 auto 6px; background: white; border: 3px solid #4F46E5; border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+                            <img src="/assets/kid-icon-192.png" style="width: 40px; height: 40px; border-radius: 50%;">
+                        </div>
+                        <span style="font-size: 12px; color: #6B7280; font-weight: 600;">Icon</span>
+                    </div>
+                    
+                    <div class="avatar-type-option" data-avatar="initial" style="flex: 1; padding: 10px; border: 2px solid #E5E7EB; border-radius: 8px; cursor: pointer; text-align: center;">
+                        <div style="width: 50px; height: 50px; margin: 0 auto 6px; background: white; border: 3px solid #4F46E5; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 24px; font-weight: bold; color: #4F46E5;">
+                            A
+                        </div>
+                        <span style="font-size: 12px; color: #6B7280; font-weight: 600;">Initial</span>
+                    </div>
+                    
+                    <div class="avatar-type-option" data-avatar="photo" id="photo-avatar-option" style="flex: 1; padding: 10px; border: 2px solid #E5E7EB; border-radius: 8px; cursor: pointer; text-align: center;">
+                        <div style="width: 50px; height: 50px; margin: 0 auto 6px; background: #E5E7EB; border: 3px solid #4F46E5; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 24px;">
+                            📷
+                        </div>
+                        <span style="font-size: 12px; color: #6B7280; font-weight: 600;">Photo</span>
+                    </div>
+                </div>
+                <input type="file" id="avatar-photo-input" accept="image/*" capture="user" style="display: none;">
             </div>
             
-            <div class="setting-item">
-    <label>Name Font</label>
-    <div class="font-picker">
-        <div class="font-option" data-font="default">
-            <span style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">Default</span>
-        </div>
-        <div class="font-option" data-font="comic">
-            <span style="font-family: 'Comic Neue', 'Comic Sans MS', cursive;">Comic (Fun)</span>
-        </div>
-        <div class="font-option" data-font="playful">
-            <span style="font-family: 'Baloo 2', sans-serif;">Playful</span>
-        </div>
-        <div class="font-option" data-font="bold">
-            <span style="font-family: 'Fredoka', 'Arial Black', sans-serif; font-weight: bold;">Bold & Strong</span>
-        </div>
-        <div class="font-option" data-font="elegant">
-            <span style="font-family: 'Playfair Display', 'Georgia', serif;">Elegant</span>
-        </div>
-        <div class="font-option" data-font="bubbly">
-            <span style="font-family: 'Chewy', cursive;">Bubbly</span>
-        </div>
-        <div class="font-option" data-font="techno">
-            <span style="font-family: 'Orbitron', monospace;">Techno/Robot</span>
-        </div>
-        <div class="font-option" data-font="fancy">
-            <span style="font-family: 'Dancing Script', cursive;">Fancy Script</span>
-        </div>
-        <div class="font-option" data-font="chunky">
-            <span style="font-family: 'Luckiest Guy', sans-serif; font-weight: bold;">Super Chunky</span>
-        </div>
-        <div class="font-option" data-font="retro">
-            <span style="font-family: 'Press Start 2P', monospace; font-size: 11px;">Retro Typewriter</span>
-        </div>
-        <div class="font-option" data-font="marker">
-            <span style="font-family: 'Permanent Marker', cursive;">Marker Pen</span>
-        </div>
-    </div>
-    <input type="hidden" id="name-font" value="default">
-</div>
-            
-            <div class="setting-item">
-                <label for="name-size">Name Size</label>
-                <input type="range" id="name-size" min="14" max="24" value="18" step="1">
-                <span id="name-size-value">18px</span>
+            <!-- Border Color -->
+            <div style="margin-bottom: 16px;">
+                <label for="avatar-border-color" style="display: block; font-weight: 600; margin-bottom: 6px; color: #374151; font-size: 14px;">Border Color</label>
+                <input type="color" id="avatar-border-color" value="#4F46E5" style="width: 100%; height: 44px; border: 2px solid #E5E7EB; border-radius: 6px; cursor: pointer; padding: 3px;">
             </div>
             
-            <button class="btn btn-primary" onclick="saveSettings()">Save Changes</button>
-        </div>
-    </div>
-    
-    <div class="settings-section">
-        <h3>Avatar</h3>
-        <div class="card">
-            <div class="avatar-picker">
-                <div class="avatar-option" data-avatar="color" data-color="#FF6B6B">
-                    <div style="width: 60px; height: 60px; background: #FF6B6B; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 24px;">A</div>
-                    <span>Red</span>
+            <!-- PREVIEW - RIGHT AFTER AVATAR SETTINGS -->
+            <div style="margin-bottom: 16px; padding: 14px; background: linear-gradient(135deg, #F9FAFB 0%, #F3F4F6 100%); border-radius: 8px; border: 2px solid #E5E7EB;">
+                <div style="display: flex; align-items: center; gap: 12px;">
+                    <div class="avatar" id="preview-avatar" style="width: 50px; height: 50px; border: 3px solid #4F46E5; background: white; color: #4F46E5; display: flex; align-items: center; justify-content: center; font-size: 20px; font-weight: bold; border-radius: 50%;">A</div>
+                    <div>
+                        <div class="kid-name" id="preview-name" style="font-size: 18px; font-weight: 600; margin-bottom: 2px;">Your Name</div>
+                        <div style="font-size: 12px; color: #6B7280;">⭐ 30 points</div>
+                    </div>
                 </div>
-                <div class="avatar-option" data-avatar="color" data-color="#4ECDC4">
-                    <div style="width: 60px; height: 60px; background: #4ECDC4; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 24px;">A</div>
-                    <span>Teal</span>
-                </div>
-                <div class="avatar-option" data-avatar="color" data-color="#FFD93D">
-                    <div style="width: 60px; height: 60px; background: #FFD93D; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 24px;">A</div>
-                    <span>Yellow</span>
-                </div>
-                <div class="avatar-option" data-avatar="color" data-color="#A78BFA">
-                    <div style="width: 60px; height: 60px; background: #A78BFA; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 24px;">A</div>
-                    <span>Purple</span>
-                </div>
-                <div class="avatar-option active" data-avatar="logo">
-                    <img src="/assets/kid-icon-192.png" style="width: 60px; height: 60px; border-radius: 50%;">
-                    <span>Logo</span>
-                </div>
-                <div class="avatar-option" data-avatar="photo" id="photo-avatar-option">
-    <div style="width: 60px; height: 60px; background: #E5E7EB; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 24px;">
-        📷
-    </div>
-    <span>Take Photo</span>
-</div>
-
-<!-- Hidden file input -->
-<input type="file" id="avatar-photo-input" accept="image/*" capture="user" style="display: none;">
-            
             </div>
-        </div>
-    </div>
-    
-    <div class="settings-section">
-        <h3>Preview</h3>
-        <div class="card">
-            <div class="profile-preview">
-                <div class="avatar" id="preview-avatar">A</div>
+            
+            <hr style="border: none; border-top: 1px solid #E5E7EB; margin: 16px 0;">
+            
+            <!-- Name Settings - Compact Two Column -->
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px;">
+                
+                <!-- LEFT: Font -->
                 <div>
-                    <div class="kid-name" id="preview-name">Your Name</div>
-                    <div class="points">⭐ 30 points</div>
+                    <label style="display: block; font-weight: 600; margin-bottom: 6px; color: #374151; font-size: 14px;">Font</label>
+                    <div style="max-height: 200px; overflow-y: auto; border: 2px solid #E5E7EB; border-radius: 6px; padding: 4px; background: #F9FAFB;">
+                        <div class="font-option active" data-font="default" style="padding: 8px; border: 2px solid #E5E7EB; border-radius: 4px; background: white; cursor: pointer; margin-bottom: 4px;">
+                            <span style="font-family: -apple-system, sans-serif; font-size: 14px;">Default</span>
+                        </div>
+                        <div class="font-option" data-font="comic" style="padding: 8px; border: 2px solid #E5E7EB; border-radius: 4px; background: white; cursor: pointer; margin-bottom: 4px;">
+                            <span style="font-family: 'Comic Neue', cursive; font-size: 14px;">Comic</span>
+                        </div>
+                        <div class="font-option" data-font="playful" style="padding: 8px; border: 2px solid #E5E7EB; border-radius: 4px; background: white; cursor: pointer; margin-bottom: 4px;">
+                            <span style="font-family: 'Baloo 2', sans-serif; font-size: 14px;">Playful</span>
+                        </div>
+                        <div class="font-option" data-font="bold" style="padding: 8px; border: 2px solid #E5E7EB; border-radius: 4px; background: white; cursor: pointer; margin-bottom: 4px;">
+                            <span style="font-family: 'Fredoka', sans-serif; font-weight: bold; font-size: 14px;">Bold</span>
+                        </div>
+                        <div class="font-option" data-font="elegant" style="padding: 8px; border: 2px solid #E5E7EB; border-radius: 4px; background: white; cursor: pointer; margin-bottom: 4px;">
+                            <span style="font-family: 'Playfair Display', serif; font-size: 14px;">Elegant</span>
+                        </div>
+                        <div class="font-option" data-font="bubbly" style="padding: 8px; border: 2px solid #E5E7EB; border-radius: 4px; background: white; cursor: pointer; margin-bottom: 4px;">
+                            <span style="font-family: 'Chewy', cursive; font-size: 14px;">Bubbly</span>
+                        </div>
+                        <div class="font-option" data-font="techno" style="padding: 8px; border: 2px solid #E5E7EB; border-radius: 4px; background: white; cursor: pointer; margin-bottom: 4px;">
+                            <span style="font-family: 'Orbitron', monospace; font-size: 14px;">Techno</span>
+                        </div>
+                        <div class="font-option" data-font="fancy" style="padding: 8px; border: 2px solid #E5E7EB; border-radius: 4px; background: white; cursor: pointer; margin-bottom: 4px;">
+                            <span style="font-family: 'Dancing Script', cursive; font-size: 14px;">Fancy</span>
+                        </div>
+                        <div class="font-option" data-font="chunky" style="padding: 8px; border: 2px solid #E5E7EB; border-radius: 4px; background: white; cursor: pointer; margin-bottom: 4px;">
+                            <span style="font-family: 'Luckiest Guy', sans-serif; font-size: 14px;">Chunky</span>
+                        </div>
+                        <div class="font-option" data-font="retro" style="padding: 8px; border: 2px solid #E5E7EB; border-radius: 4px; background: white; cursor: pointer; margin-bottom: 4px;">
+                            <span style="font-family: 'Press Start 2P', monospace; font-size: 10px;">Retro</span>
+                        </div>
+                        <div class="font-option" data-font="marker" style="padding: 8px; border: 2px solid #E5E7EB; border-radius: 4px; background: white; cursor: pointer;">
+                            <span style="font-family: 'Permanent Marker', cursive; font-size: 14px;">Marker</span>
+                        </div>
+                    </div>
+                    <input type="hidden" id="name-font" value="default">
+                </div>
+                
+                <!-- RIGHT: Color & Size -->
+                <div>
+                    <label for="name-color" style="display: block; font-weight: 600; margin-bottom: 6px; color: #374151; font-size: 14px;">Color</label>
+                    <input type="color" id="name-color" value="#1F2937" style="width: 100%; height: 44px; border: 2px solid #E5E7EB; border-radius: 6px; cursor: pointer; padding: 3px; margin-bottom: 12px;">
+                    
+                    <label for="name-size" style="display: block; font-weight: 600; margin-bottom: 6px; color: #374151; font-size: 14px;">Size: <span id="name-size-value" style="color: #4F46E5;">18px</span></label>
+                    <input type="range" id="name-size" min="14" max="32" value="18" step="1" style="width: 100%;">
                 </div>
             </div>
+            
+            <button class="btn btn-primary" onclick="saveSettings()" style="width: 100%; padding: 12px; margin-top: 4px;">Save Changes</button>
         </div>
     </div>
 </section>
@@ -242,28 +251,105 @@
     <canvas id="confetti-canvas"></canvas>
 
     <script>
-        // Auto-versioning system
-        fetch('/api/version.php')
-            .then(r => r.json())
-            .then(data => {
-                const script = document.createElement('script');
-                script.src = `kid.js?v=${data.timestamp}`;
-                document.body.appendChild(script);
-            })
-            .catch(() => {
-                // Fallback if version fetch fails
-                const script = document.createElement('script');
-                script.src = 'kid.js?v=' + Date.now();
-                document.body.appendChild(script);
-            });
-    </script>
+    // Auto-versioning system
+    fetch('/api/version.php')
+        .then(r => r.json())
+        .then(data => {
+            const script = document.createElement('script');
+            script.src = `kid.js?v=${data.timestamp}`;
+            document.body.appendChild(script);
+        })
+        .catch(() => {
+            // Fallback if version fetch fails
+            const script = document.createElement('script');
+            script.src = 'kid.js?v=' + Date.now();
+            document.body.appendChild(script);
+        });
+</script>
 
-    <script>
-        if ('serviceWorker' in navigator) {
-          navigator.serviceWorker.register('/kid/sw.js')
-            .then(() => console.log('Service Worker Registered'))
-            .catch(err => console.log('Service Worker Registration Failed:', err));
+<script>
+    // PWA Update Detection using Central Version System
+    let newWorker;
+    let currentVersion = null;
+    
+    async function checkForUpdates() {
+        try {
+            const response = await fetch('/api/version.php');
+            const data = await response.json();
+            const serverVersion = data.version;
+            
+            if (currentVersion === null) {
+                currentVersion = serverVersion;
+                console.log('Initial version:', currentVersion);
+            } else if (serverVersion !== currentVersion) {
+                console.log('New version detected:', serverVersion, '(was:', currentVersion + ')');
+                
+                // Show update button
+                const updateBtn = document.getElementById('update-btn');
+                if (updateBtn) {
+                    updateBtn.style.display = 'flex';
+                    updateBtn.classList.add('pulse-animation');
+                }
+                
+                currentVersion = serverVersion;
+            }
+        } catch (error) {
+            console.error('Error checking version:', error);
         }
-    </script>
+    }
+    
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('/kid/sw.js')
+            .then((reg) => {
+                console.log('Service Worker Registered');
+                
+                // Check version immediately
+                checkForUpdates();
+                
+                // Check for updates every 30 seconds
+                setInterval(() => {
+                    checkForUpdates();
+                    reg.update();
+                }, 30000);
+                
+                reg.addEventListener('updatefound', () => {
+                    newWorker = reg.installing;
+                    
+                    newWorker.addEventListener('statechange', () => {
+                        if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                            // New service worker installed
+                            const updateBtn = document.getElementById('update-btn');
+                            if (updateBtn) {
+                                updateBtn.style.display = 'flex';
+                                updateBtn.classList.add('pulse-animation');
+                            }
+                        }
+                    });
+                });
+            })
+            .catch(err => console.log('Service Worker Registration Failed:', err));
+        
+        // Handle update button click
+        document.addEventListener('DOMContentLoaded', () => {
+            const updateBtn = document.getElementById('update-btn');
+            if (updateBtn) {
+                updateBtn.addEventListener('click', () => {
+                    if (newWorker) {
+                        newWorker.postMessage({ type: 'SKIP_WAITING' });
+                    }
+                    
+                    navigator.serviceWorker.addEventListener('controllerchange', () => {
+                        window.location.reload();
+                    });
+                    
+                    // Force reload even if service worker doesn't respond
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 1000);
+                });
+            }
+        });
+    }
+</script>
 </body>
 </html>

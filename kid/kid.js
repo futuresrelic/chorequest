@@ -803,8 +803,8 @@ function saveSettings() {
         nameColor: document.getElementById('name-color').value,
         nameFont: document.getElementById('name-font').value,
         nameSize: parseInt(document.getElementById('name-size').value),
-        avatarType: document.querySelector('.avatar-option.active')?.dataset.avatar,
-        avatarColor: document.querySelector('.avatar-option.active')?.dataset.color
+        avatarType: document.querySelector('.avatar-type-option.active')?.dataset.avatar,
+        avatarBorderColor: document.getElementById('avatar-border-color').value
     };
     
     localStorage.setItem('kid_settings', JSON.stringify(settings));
@@ -814,7 +814,7 @@ function saveSettings() {
     document.documentElement.style.setProperty('--name-font', getFontFamily(settings.nameFont));
     document.documentElement.style.setProperty('--name-size', settings.nameSize + 'px');
     
-    // ALSO apply directly to the header name element
+    // Also apply directly to name element
     const nameEl = document.getElementById('kid-name');
     if (nameEl) {
         nameEl.style.fontSize = settings.nameSize + 'px';
@@ -822,7 +822,7 @@ function saveSettings() {
         nameEl.style.fontFamily = getFontFamily(settings.nameFont);
     }
     
-    applyAvatar(settings.avatarType, settings.avatarColor);
+    applyAvatar(settings.avatarType, settings.avatarBorderColor);
     updateHeader();
     updatePreview();
     
@@ -832,36 +832,35 @@ function saveSettings() {
 // Make it globally accessible for onclick
 window.saveSettings = saveSettings;
 
-function applyAvatar(type, color) {
+function applyAvatar(type, borderColor) {
     const avatar = document.getElementById('kid-avatar');
-    const nameEl = document.getElementById('kid-name');
-    
     if (!avatar || !currentKid) return;
     
+    const color = borderColor || '#4F46E5';
+    avatar.style.border = `3px solid ${color}`;
+    avatar.style.background = 'white';
+    
     if (type === 'logo') {
-        avatar.innerHTML = `<img src="/assets/kid-icon-192.png" alt="${currentKid.kid_name}" style="width: 100%; height: 100%; object-fit: cover;">`;
+        avatar.innerHTML = `<img src="/assets/kid-icon-192.png" alt="${currentKid.kid_name}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">`;
     } else if (type === 'photo') {
         const photoData = localStorage.getItem('kid_avatar_photo');
         if (photoData) {
             avatar.innerHTML = `<img src="${photoData}" alt="${currentKid.kid_name}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">`;
         } else {
-            // Fallback if photo was deleted
+            // No photo available - fallback to initial
             const initial = currentKid.kid_name?.[0] || 'K';
-            avatar.style.background = '#4F46E5';
+            avatar.style.color = color;
+            avatar.style.fontSize = '20px';
+            avatar.style.fontWeight = 'bold';
             avatar.textContent = initial;
         }
     } else {
+        // Initial (default)
         const initial = currentKid.kid_name?.[0] || 'K';
-        avatar.style.background = color || '#4F46E5';
+        avatar.style.color = color;
+        avatar.style.fontSize = '20px';
+        avatar.style.fontWeight = 'bold';
         avatar.textContent = initial;
-    }
-    
-    // Apply font styles
-    if (nameEl) {
-        const settings = JSON.parse(localStorage.getItem('kid_settings') || '{}');
-        if (settings.nameSize) nameEl.style.fontSize = settings.nameSize + 'px';
-        if (settings.nameColor) nameEl.style.color = settings.nameColor;
-        if (settings.nameFont) nameEl.style.fontFamily = getFontFamily(settings.nameFont);
     }
 }
 
@@ -1086,10 +1085,6 @@ function updatePreview() {
     const previewName = document.getElementById('preview-name');
     const previewAvatar = document.getElementById('preview-avatar');
     
-    console.log('previewName element:', previewName);
-    console.log('previewAvatar element:', previewAvatar);
-    console.log('currentKid:', currentKid);
-    
     if (!previewName || !previewAvatar || !currentKid) {
         console.log('STOPPING - missing elements or no kid data');
         return;
@@ -1100,57 +1095,50 @@ function updatePreview() {
     // Get current settings
     const nameColor = document.getElementById('name-color');
     const nameSize = document.getElementById('name-size');
-    const activeFontOption = document.querySelector('.font-option.active');
-    const selectedFont = activeFontOption ? activeFontOption.dataset.font : 'default';
+    const nameFont = document.getElementById('name-font');
+    const avatarBorderColor = document.getElementById('avatar-border-color');
     
-    console.log('Active font option:', activeFontOption);
-    console.log('Selected font:', selectedFont);
-    
-    const fontFamily = getFontFamily(selectedFont);
-    console.log('Font family string:', fontFamily);
-    
-    // Apply styles
+    // Apply name styles
     if (nameColor) {
-        previewName.style.setProperty('color', nameColor.value, 'important');
+        previewName.style.color = nameColor.value;
     }
-    
     if (nameSize) {
         previewName.style.fontSize = nameSize.value + 'px';
-        console.log('Applied size:', nameSize.value + 'px');
+    }
+    if (nameFont) {
+        previewName.style.fontFamily = getFontFamily(nameFont.value);
     }
     
-    if (selectedFont) {
-        previewName.style.setProperty('font-family', fontFamily, 'important');
-        console.log('Applied font family:', fontFamily);
-        console.log('Preview name computed style:', window.getComputedStyle(previewName).fontFamily);
+    // Apply avatar border
+    const borderColor = avatarBorderColor ? avatarBorderColor.value : '#4F46E5';
+    previewAvatar.style.border = `3px solid ${borderColor}`;
+    previewAvatar.style.background = 'white';
+    
+    // Apply avatar type
+    const activeAvatarType = document.querySelector('.avatar-type-option.active');
+    const avatarType = activeAvatarType ? activeAvatarType.dataset.avatar : 'logo';
+    
+    if (avatarType === 'logo') {
+        previewAvatar.innerHTML = `<img src="/assets/kid-icon-192.png" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">`;
+    } else if (avatarType === 'photo') {
+        const photoData = localStorage.getItem('kid_avatar_photo');
+        if (photoData) {
+            previewAvatar.innerHTML = `<img src="${photoData}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">`;
+        } else {
+            previewAvatar.style.color = borderColor;
+            previewAvatar.style.fontSize = '24px';
+            previewAvatar.style.fontWeight = 'bold';
+            previewAvatar.textContent = currentKid.kid_name?.[0] || 'A';
+        }
+    } else {
+        // Initial
+        previewAvatar.style.color = borderColor;
+        previewAvatar.style.fontSize = '24px';
+        previewAvatar.style.fontWeight = 'bold';
+        previewAvatar.textContent = currentKid.kid_name?.[0] || 'A';
     }
     
     console.log('=== updatePreview END ===');
-    
-    // Handle avatar preview
-    const activeAvatar = document.querySelector('.avatar-option.active');
-    if (activeAvatar) {
-        const avatarType = activeAvatar.dataset.avatar;
-        const avatarColor = activeAvatar.dataset.color;
-        
-        if (avatarType === 'logo') {
-            previewAvatar.innerHTML = `<img src="/assets/kid-icon-192.png" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;">`;
-        } else if (avatarType === 'photo') {
-            const photoData = localStorage.getItem('kid_avatar_photo');
-            if (photoData) {
-                previewAvatar.innerHTML = `<img src="${photoData}" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;">`;
-            } else {
-                previewAvatar.style.background = '#E5E7EB';
-                previewAvatar.innerHTML = '📷';
-            }
-        } else if (avatarType === 'color') {
-            previewAvatar.style.background = avatarColor || '#4F46E5';
-            previewAvatar.innerHTML = currentKid.kid_name?.[0] || 'K';
-        } else {
-            previewAvatar.style.background = '#4F46E5';
-            previewAvatar.innerHTML = currentKid.kid_name?.[0] || 'K';
-        }
-    }
 }
 
 function attachSettingsListeners() {
@@ -1206,7 +1194,19 @@ function attachSettingsListeners() {
             updatePreview();
         });
     });
+    document.querySelectorAll('.avatar-type-option').forEach(option => {
+        option.addEventListener('click', () => {
+            document.querySelectorAll('.avatar-type-option').forEach(o => o.classList.remove('active'));
+            option.classList.add('active');
+            updatePreview();
+        });
+    });
     
+    // Avatar border color
+    const avatarBorderColor = document.getElementById('avatar-border-color');
+    if (avatarBorderColor) {
+        avatarBorderColor.addEventListener('input', updatePreview);
+    }
     // Initialize photo avatar
     initPhotoAvatar();
     loadPhotoAvatar();

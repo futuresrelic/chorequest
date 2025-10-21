@@ -563,13 +563,16 @@ main {
     overflow-y: auto;
 }
 
-/* Settings View - MOBILE OPTIMIZED */
+/* ============================================
+   SETTINGS SECTIONS - TIGHTER SPACING
+   ============================================ */
+
 .settings-section {
     margin-bottom: 20px;
 }
 
 .settings-section h3 {
-    font-size: 16px;
+    font-size: 15px;
     font-weight: 600;
     margin-bottom: 10px;
     color: #374151;
@@ -762,4 +765,275 @@ main {
         border-color: #4F46E5;
         background: #EEF2FF;
     }
+}
+
+/* ============================================
+   SETTINGS - SIDE BY SIDE LAYOUT
+   ============================================ */
+
+.settings-section {
+    margin-bottom: 24px;
+}
+
+.settings-section h3 {
+    font-size: 16px;
+    font-weight: 600;
+    margin-bottom: 12px;
+    color: #374151;
+}
+
+/* Two Column Grid - DESKTOP */
+.settings-grid-2col {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+}
+
+.settings-col-left,
+.settings-col-right {
+    display: flex;
+    flex-direction: column;
+}
+
+.settings-col-left label,
+.settings-col-right label {
+    font-weight: 600;
+    margin-bottom: 12px;
+    color: #374151;
+    font-size: 14px;
+    display: block;
+}
+
+/* Font Picker Scrollable */
+.font-picker-scroll {
+    max-height: 320px;
+    overflow-y: auto;
+    border: 2px solid #E5E7EB;
+    border-radius: 8px;
+    padding: 8px;
+    background: #F9FAFB;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.font-picker-scroll::-webkit-scrollbar {
+    width: 8px;
+}
+
+.font-picker-scroll::-webkit-scrollbar-track {
+    background: #F3F4F6;
+    border-radius: 4px;
+}
+
+.font-picker-scroll::-webkit-scrollbar-thumb {
+    background: #9CA3AF;
+    border-radius: 4px;
+}
+
+.font-picker-scroll::-webkit-scrollbar-thumb:hover {
+    background: #6B7280;
+}
+
+.font-option {
+    padding: 14px;
+    border: 2px solid #E5E7EB;
+    border-radius: 8px;
+    background: white;
+    cursor: pointer;
+    transition: all 0.2s;
+    min-height: 50px;
+    display: flex;
+    align-items: center;
+}
+
+.font-option:hover {
+    border-color: #4F46E5;
+    background: #F9FAFB;
+}
+
+.font-option.active {
+    border-color: #4F46E5;
+    background: #EEF2FF;
+    box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+}
+
+.font-option span {
+    font-size: 16px;
+    width: 100%;
+}
+
+/* Right Column Controls */
+.setting-control {
+    margin-bottom: 24px;
+}
+
+.setting-control:last-child {
+    margin-bottom: 0;
+}
+
+.color-input-box {
+    width: 100%;
+    height: 60px;
+    border: 2px solid #E5E7EB;
+    border-radius: 8px;
+    cursor: pointer;
+    padding: 6px;
+}
+
+.setting-control input[type="range"] {
+    width: 100%;
+    margin-top: 8px;
+}
+
+#name-size-value {
+    font-weight: 600;
+    color: #4F46E5;
+}
+
+/* Avatar Grid - 3x2 on Mobile, 6 across on Desktop */
+.avatar-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    padding: 8px 0;
+}
+
+/* Override any conflicting styles */
+.avatar-grid .avatar-option {
+    text-align: center;
+    cursor: pointer;
+    padding: 12px 8px;
+    border: 2px solid #E5E7EB;
+    border-radius: 12px;
+    transition: all 0.2s;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    width: auto; /* IMPORTANT - prevents override */
+    flex-shrink: 1;
+}
+
+@media (min-width: 769px) {
+    .avatar-grid {
+        grid-template-columns: repeat(6, 1fr);
+        gap: 16px;
+    }
+    
+    .avatar-grid .avatar-option {
+        padding: 16px 12px;
+    }
+}
+
+.avatar-option:hover {
+    border-color: #4F46E5;
+    background: #F9FAFB;
+    transform: translateY(-2px);
+}
+
+.avatar-option.active {
+    border-color: #4F46E5;
+    background: #EEF2FF;
+    box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.15);
+}
+
+.avatar-option span {
+    font-size: 11px;
+    color: #6B7280;
+    font-weight: 500;
+}
+
+/* Profile Preview */
+.profile-preview {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 20px;
+    background: linear-gradient(135deg, #F9FAFB 0%, #F3F4F6 100%);
+    border-radius: 12px;
+    border: 2px solid #E5E7EB;
+}
+
+.profile-preview .avatar {
+    width: 60px;
+    height: 60px;
+    font-size: 24px;
+    flex-shrink: 0;
+}
+
+.profile-preview .kid-name {
+    font-size: 20px;
+}
+
+.profile-preview .points {
+    font-size: 14px;
+    color: #6B7280;
+}
+
+/* ============================================
+   RESPONSIVE - MOBILE
+   ============================================ */
+@media (max-width: 768px) {
+    /* Stack columns on mobile */
+    .settings-grid-2col {
+        grid-template-columns: 1fr;
+        gap: 20px;
+    }
+    
+    /* Keep avatar grid as 3x2 on mobile */
+    .avatar-grid {
+        grid-template-columns: repeat(3, 1fr);
+    }
+    
+    .font-picker-scroll {
+        max-height: 280px;
+    }
+}
+
+/* ============================================
+   RESPONSIVE - TABLET & DESKTOP
+   ============================================ */
+@media (min-width: 769px) {
+    /* 6 avatars across on desktop */
+    .avatar-grid {
+        grid-template-columns: repeat(6, 1fr);
+        gap: 16px;
+    }
+    
+    .avatar-option {
+        padding: 16px 12px;
+    }
+}
+
+/* Compact Avatar Type Options */
+.avatar-type-option {
+    transition: all 0.2s;
+}
+
+.avatar-type-option:hover {
+    border-color: #4F46E5 !important;
+    background: #F9FAFB;
+    transform: translateY(-1px);
+}
+
+.avatar-type-option.active {
+    border-color: #4F46E5 !important;
+    background: #EEF2FF;
+    box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.15);
+}
+
+.avatar-type-option.active span {
+    color: #4F46E5;
+}
+
+/* Compact Font Options */
+.font-option:hover {
+    border-color: #4F46E5 !important;
+    background: #F9FAFB;
+}
+
+.font-option.active {
+    border-color: #4F46E5 !important;
+    background: #EEF2FF !important;
 }
