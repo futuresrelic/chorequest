@@ -1273,8 +1273,8 @@ switch ($action) {
         break;
     
 case 'save_kid_settings':
-    // Get kid from device token
-    $device_token = $_COOKIE['kid_token'] ?? null;
+    // Get kid from device token - check session first!
+    $device_token = $_SESSION['kid_token'] ?? $_COOKIE['kid_token'] ?? null;
     
     if (!$device_token) {
         echo json_encode(['ok' => false, 'error' => 'No device token']);
@@ -1311,10 +1311,10 @@ case 'save_kid_settings':
         echo json_encode(['ok' => false, 'error' => 'Database update failed']);
     }
     break;
-        
+
 case 'load_kid_settings':
-    // Get kid from device token
-    $device_token = $_COOKIE['kid_token'] ?? null;
+    // Get kid from device token - check session first!
+    $device_token = $_SESSION['kid_token'] ?? $_COOKIE['kid_token'] ?? null;
     
     if (!$device_token) {
         echo json_encode(['ok' => false, 'error' => 'No device token']);
@@ -1339,14 +1339,14 @@ case 'load_kid_settings':
     $stmt->execute([$kid_id]);
     $user = $stmt->fetch();
     
-    if ($user && $user['settings']) {
+    if ($user && !empty($user['settings'])) {
         $settings = json_decode($user['settings'], true);
         echo json_encode(['ok' => true, 'settings' => $settings]);
     } else {
         echo json_encode(['ok' => true, 'settings' => []]);
     }
     break;
-
+    
     case 'load_chore_presets':
         requireAdmin();
         
