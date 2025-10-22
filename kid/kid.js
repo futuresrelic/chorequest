@@ -829,7 +829,7 @@ function loadSettings() {
     
     updatePreview();
     
-    // Apply theme styling AFTER everything loads (NO setTimeout needed!)
+    // Apply theme styling after everything loads
     if (settings.themeName && themes[settings.themeName]) {
         console.log('🎨 Loading saved theme:', settings.themeName);
         applyThemeStyling(themes[settings.themeName]);
