@@ -1267,6 +1267,50 @@ switch ($action) {
         jsonResponse(true, ['photo_data' => $user['avatar_photo'] ?? null]);
         break;
     
+    case 'save_kid_settings':
+        $kid_id = $_SESSION['kid_id'] ?? null;
+        $settings = $data['settings'] ?? null;
+        
+        if (!$kid_id || !$settings) {
+            echo json_encode(['ok' => false, 'error' => 'Missing data']);
+            break;
+        }
+        
+        // Store settings as JSON
+        $settings_json = json_encode($settings);
+        
+        $stmt = $conn->prepare("UPDATE kids SET settings = ? WHERE id = ?");
+        $stmt->bind_param("si", $settings_json, $kid_id);
+        
+        if ($stmt->execute()) {
+            echo json_encode(['ok' => true]);
+        } else {
+            echo json_encode(['ok' => false, 'error' => 'Failed to save settings']);
+        }
+        break;
+    
+    case 'load_kid_settings':
+        $kid_id = $_SESSION['kid_id'] ?? null;
+        
+        if (!$kid_id) {
+            echo json_encode(['ok' => false, 'error' => 'Not logged in']);
+            break;
+        }
+        
+        $stmt = $conn->prepare("SELECT settings FROM kids WHERE id = ?");
+        $stmt->bind_param("i", $kid_id);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        $kid = $result->fetch_assoc();
+        
+        if ($kid && $kid['settings']) {
+            $settings = json_decode($kid['settings'], true);
+            echo json_encode(['ok' => true, 'settings' => $settings]);
+        } else {
+            echo json_encode(['ok' => true, 'settings' => []]);
+        }
+        break;
+        
     case 'load_chore_presets':
         requireAdmin();
         

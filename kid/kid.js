@@ -87,7 +87,17 @@ function showAppScreen() {
         loadFeed();
         loadSettings();
         attachSettingsListeners();
-    }, 50);
+        
+        // Initialize avatar selector AFTER settings are loaded
+        console.log('🎯 Calling initAvatarSelector from showAppScreen...');
+        initAvatarSelector();
+// Initialize border style selector
+console.log('🎨 Calling initBorderStyleSelector from showAppScreen...');
+initBorderStyleSelector();
+
+// Initialize theme selector
+console.log('🎨 Calling initThemeSelector from showAppScreen...');
+initThemeSelector();    }, 50);
 }
 
 // Check if already paired
@@ -121,15 +131,30 @@ function updateHeader() {
     if (avatar) {
         // Check if user has custom settings
         const settings = JSON.parse(localStorage.getItem('kid_settings') || '{}');
+        
         if (settings.avatarType) {
-            applyAvatar(settings.avatarType, settings.avatarColor);
+            applyAvatar(settings.avatarType, settings.avatarBorderColor);
         } else {
             // Default: use logo
-            avatar.innerHTML = `<img src="/assets/kid-icon-192.png" alt="${currentKid.kid_name}" style="width: 100%; height: 100%; object-fit: cover;">`;
+            avatar.innerHTML = `<img src="/assets/kid-icon-192.png" alt="${currentKid.kid_name}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">`;
+            // Apply border even for default
+            applyBorderToHeader();
+        }
+        
+        // Apply saved name styles
+        if (nameEl) {
+            if (settings.nameSize) nameEl.style.fontSize = settings.nameSize + 'px';
+            if (settings.nameColor) nameEl.style.color = settings.nameColor;
+            if (settings.nameFont) nameEl.style.fontFamily = getFontFamily(settings.nameFont);
         }
     }
+    
+    // Apply saved theme styling to header
+    const settings = JSON.parse(localStorage.getItem('kid_settings') || '{}');
+    if (settings.themeName && themes[settings.themeName]) {
+        applyThemeStyling(themes[settings.themeName]);
+    }
 }
-
 // Navigation
 document.querySelectorAll('.nav-btn').forEach(btn => {
     btn.addEventListener('click', () => {
@@ -777,7 +802,33 @@ function loadSettings() {
         applyAvatar(settings.avatarType, settings.avatarColor);
     }
     
+    // Load saved border style (settings already declared above)
+    if (settings.borderStyle && settings.borderWidth) {
+        selectedBorderStyle = settings.borderStyle;
+        selectedBorderWidth = settings.borderWidth;
+        applyBorderToHeader();
+    }
+// Load and apply saved theme styling
+    if (settings.borderStyle && settings.borderWidth) {
+        selectedBorderStyle = settings.borderStyle;
+        selectedBorderWidth = settings.borderWidth;
+        applyBorderToHeader();
+    }
+    
     updatePreview();
+    
+    // Apply theme styling AFTER everything loads
+    if (settings.themeName && themes[settings.themeName]) {
+        console.log('🎨 Loading saved theme:', settings.themeName);
+        setTimeout(() => {
+            applyThemeStyling(themes[settings.themeName]);
+        }, 100);
+    } else if (settings.bgGradient || settings.bgColor) {
+        // Apply custom styling if no theme name but has styling
+        setTimeout(() => {
+            applyThemeStyling(settings);
+        }, 100);
+    }
 }
 
 function getFontFamily(fontType) {
@@ -807,6 +858,18 @@ function saveSettings() {
         avatarBorderColor: document.getElementById('avatar-border-color').value
     };
     
+    // Don't overwrite saved avatarIcon unless it was just set
+    const existingSettings = JSON.parse(localStorage.getItem('kid_settings') || '{}');
+    if (existingSettings.avatarIcon) {
+        settings.avatarIcon = existingSettings.avatarIcon;
+    }
+    
+    // Preserve border style settings
+    if (existingSettings.borderStyle) {
+        settings.borderStyle = existingSettings.borderStyle;
+        settings.borderWidth = existingSettings.borderWidth;
+    }
+    
     localStorage.setItem('kid_settings', JSON.stringify(settings));
     
     // Apply settings via CSS variables
@@ -823,7 +886,11 @@ function saveSettings() {
     }
     
     applyAvatar(settings.avatarType, settings.avatarBorderColor);
-    updateHeader();
+    
+    // NOW apply the border to header (reads from localStorage which has the new border)
+    console.log('💾 Saving - now applying border to header...');
+    applyBorderToHeader();
+    
     updatePreview();
     
     alert('Settings saved! ✨');
@@ -837,11 +904,18 @@ function applyAvatar(type, borderColor) {
     if (!avatar || !currentKid) return;
     
     const color = borderColor || '#4F46E5';
-    avatar.style.border = `3px solid ${color}`;
+    
+    // Don't set border here - let applyBorderToHeader handle it
     avatar.style.background = 'white';
     
     if (type === 'logo') {
-        avatar.innerHTML = `<img src="/assets/kid-icon-192.png" alt="${currentKid.kid_name}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">`;
+        // Check if we have a saved custom icon
+        const settings = JSON.parse(localStorage.getItem('kid_settings') || '{}');
+        if (settings.avatarIcon) {
+            avatar.innerHTML = `<img src="${settings.avatarIcon}" alt="${currentKid.kid_name}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">`;
+        } else {
+            avatar.innerHTML = `<img src="/assets/kid-icon-192.png" alt="${currentKid.kid_name}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">`;
+        }
     } else if (type === 'photo') {
         const photoData = localStorage.getItem('kid_avatar_photo');
         if (photoData) {
@@ -865,219 +939,230 @@ function applyAvatar(type, borderColor) {
 }
 
 // Photo Avatar Handling
-function initPhotoAvatar() {
-    const photoOption = document.getElementById('photo-avatar-option');
-    const photoInput = document.getElementById('avatar-photo-input');
-    
-    if (photoOption && photoInput) {
-        photoOption.addEventListener('click', () => {
-            photoInput.click();
-        });
-        
-        photoInput.addEventListener('change', handlePhotoUpload);
-    }
-}
+//function initPhotoAvatar() {
+//    const photoOption = document.getElementById('photo-avatar-option');
+//    const photoInput = document.getElementById('avatar-photo-input');
+//    
+//    if (photoOption && photoInput) {
+//        photoOption.addEventListener('click', () => {
+//            photoInput.click();
+//        });
+//        
+//        photoInput.addEventListener('change', handlePhotoUpload);
+//    }
+//}
 
-function handlePhotoUpload(event) {
-    const file = event.target.files[0];
-    if (!file) return;
-    
+// function handlePhotoUpload(event) {
+//     const file = event.target.files[0];
+//     if (!file) return;
+//     
     // Check file type
-    if (!file.type.startsWith('image/')) {
-        alert('Please select an image file!');
-        return;
-    }
+    // if (!file.type.startsWith('image/')) {
+       //  alert('Please select an image file!');
+        // return;
+    // }
+    
+    // NO SIZE LIMIT - we're cropping it down anyway!
+    // console.log('📸 Photo selected:', file.name, 'Size:', Math.round(file.size / 1024) + 'KB');
     
     // Read and process the image
-    const reader = new FileReader();
-    reader.onload = function(e) {
-        const img = new Image();
-        img.onload = function() {
+    // const reader = new FileReader();
+    // reader.onload = function(e) {
+        // const img = new Image();
+        // img.onload = function() {
+            // console.log('🖼️ Photo loaded, dimensions:', img.width, 'x', img.height);
             // Create a simple crop interface
-            showCropModal(img);
-        };
-        img.src = e.target.result;
-    };
+            // showCropModal(img);
+        // };
+        // img.src = e.target.result;
+    // };
     
-    reader.readAsDataURL(file);
-}
+    // reader.readAsDataURL(file);
+// }
 
-function showCropModal(img) {
+// function showCropModal(img) {
     // Create modal
-    const modal = document.createElement('div');
-    modal.className = 'modal-overlay';
-    modal.style.zIndex = '10000';
+    // const modal = document.createElement('div');
+    // modal.className = 'modal-overlay';
+    // modal.style.zIndex = '10000';
     
-    modal.innerHTML = `
-        <div class="modal-content-kid" style="max-width: 500px;">
-            <h3 style="margin-bottom: 20px;">Adjust Your Photo 📸</h3>
+    // modal.innerHTML = `
+        // <div class="modal-content-kid" style="max-width: 500px;">
+            // <h3 style="margin-bottom: 20px;">Adjust Your Photo 📸</h3>
             
-            <div style="text-align: center; margin-bottom: 20px;">
-                <canvas id="crop-canvas" style="max-width: 100%; border: 3px solid #4F46E5; border-radius: 12px; cursor: move;"></canvas>
-            </div>
+            // <div style="text-align: center; margin-bottom: 20px;">
+                // <canvas id="crop-canvas" style="max-width: 100%; border: 3px solid #4F46E5; border-radius: 12px; cursor: move;"></canvas>
+            // </div>
             
-            <div style="margin-bottom: 20px;">
-                <label style="display: block; margin-bottom: 8px; font-weight: 600;">Zoom:</label>
-                <input type="range" id="zoom-slider" min="100" max="300" value="100" style="width: 100%;">
-            </div>
+            // <div style="margin-bottom: 20px;">
+                // <label style="display: block; margin-bottom: 8px; font-weight: 600;">Zoom:</label>
+                // <input type="range" id="zoom-slider" min="50" max="200" value="100" style="width: 100%;">
+            // </div>
             
-            <div style="display: flex; gap: 10px;">
-                <button class="btn btn-secondary" onclick="this.closest('.modal-overlay').remove()" style="flex: 1;">Cancel</button>
-                <button class="btn btn-primary" id="save-photo-btn" style="flex: 1;">Save Photo ✨</button>
-            </div>
-        </div>
-    `;
+            // <div style="display: flex; gap: 10px;">
+                // <button class="btn btn-secondary" onclick="this.closest('.modal-overlay').remove()" style="flex: 1;">Cancel</button>
+                // <button class="btn btn-primary" id="save-photo-btn" style="flex: 1;">Save Photo ✨</button>
+            // </div>
+        // </div>
+    // `;
     
-    document.body.appendChild(modal);
+    // document.body.appendChild(modal);
     
     // Setup canvas
-    const canvas = document.getElementById('crop-canvas');
-    const ctx = canvas.getContext('2d');
-    const size = 300; // Fixed square size
-    canvas.width = size;
-    canvas.height = size;
+    // const canvas = document.getElementById('crop-canvas');
+    // const ctx = canvas.getContext('2d');
+    // const size = 300; // Fixed square size
+    // canvas.width = size;
+    // canvas.height = size;
     
-    let zoom = 1;
-    let offsetX = 0;
-    let offsetY = 0;
-    let isDragging = false;
-    let startX = 0;
-    let startY = 0;
+    // Calculate initial scale to fit image nicely
+    // const initialScale = Math.max(size / img.width, size / img.height);
+    // let zoom = initialScale;
+    // let offsetX = 0;
+    // let offsetY = 0;
+    // let isDragging = false;
+    // let startX = 0;
+    // let startY = 0;
     
-    function drawImage() {
-        ctx.clearRect(0, 0, size, size);
+    // function drawImage() {
+        // ctx.clearRect(0, 0, size, size);
         
         // Calculate scaled dimensions
-        const scaledWidth = img.width * zoom;
-        const scaledHeight = img.height * zoom;
+        // const scaledWidth = img.width * zoom;
+        // const scaledHeight = img.height * zoom;
         
-        // Center the image initially
-        const x = (size - scaledWidth) / 2 + offsetX;
-        const y = (size - scaledHeight) / 2 + offsetY;
+        // Center the image
+        // const x = (size - scaledWidth) / 2 + offsetX;
+        // const y = (size - scaledHeight) / 2 + offsetY;
         
-        ctx.drawImage(img, x, y, scaledWidth, scaledHeight);
+        // ctx.drawImage(img, x, y, scaledWidth, scaledHeight);
+    // }
+    
+    // Initial draw
+    // drawImage();
+    
+    // Zoom slider - FIX: Convert slider value to proper zoom scale
+    // const zoomSlider = document.getElementById('zoom-slider');
+    // zoomSlider.value = 100; // Start at 100%
+    
+    // zoomSlider.addEventListener('input', (e) => {
+        // const sliderValue = parseInt(e.target.value);
+        // Convert slider value (50-200) to zoom scale relative to initial fit
+        // zoom = initialScale * (sliderValue / 100);
+        // drawImage();
+    // });
+    
+    // Mouse drag to reposition
+    // canvas.addEventListener('mousedown', (e) => {
+        // isDragging = true;
+        // const rect = canvas.getBoundingClientRect();
+        // startX = e.clientX - rect.left - offsetX;
+        // startY = e.clientY - rect.top - offsetY;
+    // });
+    
+    // canvas.addEventListener('mousemove', (e) => {
+        // if (isDragging) {
+            // const rect = canvas.getBoundingClientRect();
+            // offsetX = e.clientX - rect.left - startX;
+            // offsetY = e.clientY - rect.top - startY;
+            // drawImage();
+        // }
+    // });
+    
+    // canvas.addEventListener('mouseup', () => {
+        // isDragging = false;
+    // });
+    
+    // canvas.addEventListener('mouseleave', () => {
+        // isDragging = false;
+    // });
+    
+    // Touch drag for mobile
+    // canvas.addEventListener('touchstart', (e) => {
+        // e.preventDefault();
+        // isDragging = true;
+        // const touch = e.touches[0];
+        // const rect = canvas.getBoundingClientRect();
+        // startX = touch.clientX - rect.left - offsetX;
+        // startY = touch.clientY - rect.top - offsetY;
+    // });
+    
+    // canvas.addEventListener('touchmove', (e) => {
+        // e.preventDefault();
+        // if (isDragging) {
+            // const touch = e.touches[0];
+            // const rect = canvas.getBoundingClientRect();
+            // offsetX = touch.clientX - rect.left - startX;
+            // offsetY = touch.clientY - rect.top - startY;
+            // drawImage();
+        // }
+    // });
+    
+    // canvas.addEventListener('touchend', () => {
+        // isDragging = false;
+    // });
+    
+    // Save button - FIX: Create finalCanvas properly
+    // document.getElementById('save-photo-btn').addEventListener('click', async () => {
+        // Create a final canvas for the cropped result
+        // const finalCanvas = document.createElement('canvas');
+        // finalCanvas.width = 200;
+        // finalCanvas.height = 200;
+        // const finalCtx = finalCanvas.getContext('2d');
         
-        // Draw circle overlay to show crop area
-        ctx.globalCompositeOperation = 'destination-in';
-        ctx.beginPath();
-        ctx.arc(size / 2, size / 2, size / 2, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.globalCompositeOperation = 'source-over';
-    }
-    
-    // Initial draw - auto-fit to circle
-    const scale = Math.max(size / img.width, size / img.height);
-    zoom = scale;
-    drawImage();
-    
-    // Zoom slider
-    document.getElementById('zoom-slider').addEventListener('input', (e) => {
-        zoom = e.target.value / 100;
-        drawImage();
-    });
-    
-    // Drag to reposition
-    canvas.addEventListener('mousedown', (e) => {
-        isDragging = true;
-        startX = e.offsetX - offsetX;
-        startY = e.offsetY - offsetY;
-    });
-    
-    canvas.addEventListener('mousemove', (e) => {
-        if (isDragging) {
-            offsetX = e.offsetX - startX;
-            offsetY = e.offsetY - startY;
-            drawImage();
-        }
-    });
-    
-    canvas.addEventListener('mouseup', () => {
-        isDragging = false;
-    });
-    
-    canvas.addEventListener('mouseleave', () => {
-        isDragging = false;
-    });
-    
-    // Touch events for mobile
-    canvas.addEventListener('touchstart', (e) => {
-        e.preventDefault();
-        isDragging = true;
-        const touch = e.touches[0];
-        const rect = canvas.getBoundingClientRect();
-        startX = touch.clientX - rect.left - offsetX;
-        startY = touch.clientY - rect.top - offsetY;
-    });
-    
-    canvas.addEventListener('touchmove', (e) => {
-        e.preventDefault();
-        if (isDragging) {
-            const touch = e.touches[0];
-            const rect = canvas.getBoundingClientRect();
-            offsetX = touch.clientX - rect.left - startX;
-            offsetY = touch.clientY - rect.top - startY;
-            drawImage();
-        }
-    });
-    
-    canvas.addEventListener('touchend', () => {
-        isDragging = false;
-    });
-    
-    // Save button
-document.getElementById('save-photo-btn').addEventListener('click', async () => {
-    // ... existing canvas code ...
-    
-    const photoData = finalCanvas.toDataURL('image/jpeg', 0.8);
-    
-    // Save to server
-    const result = await apiCall('upload_kid_avatar', { photo_data: photoData });
-    
-    if (result.ok) {
-        // Also save to localStorage as backup
-        localStorage.setItem('kid_avatar_photo', photoData);
+        // Draw the current canvas state to the final canvas (scaled down to 200x200)
+        // finalCtx.drawImage(canvas, 0, 0, size, size, 0, 0, 200, 200);
         
-        // Update displays
-        const photoOption = document.getElementById('photo-avatar-option');
-        if (photoOption) {
-            const photoCircle = photoOption.querySelector('div');
-            photoCircle.innerHTML = `<img src="${photoData}" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;">`;
-        }
+        // const photoData = finalCanvas.toDataURL('image/jpeg', 0.8);
         
-        document.querySelectorAll('.avatar-option').forEach(o => o.classList.remove('active'));
-        if (photoOption) photoOption.classList.add('active');
+        // Save to server
+        // const result = await apiCall('upload_kid_avatar', { photo_data: photoData });
         
-        updatePreview();
-        modal.remove();
-        alert('Photo saved! Click "Save Changes" to keep it. 📸');
-    } else {
-        alert('Error saving photo: ' + result.error);
-    }
-});
-}
+        // if (result.ok) {
+            // Also save to localStorage as backup
+            // localStorage.setItem('kid_avatar_photo', photoData);
+            
+            // Update displays
+            // const photoOption = document.getElementById('photo-avatar-option');
+            // if (photoOption) {
+                // const photoCircle = photoOption.querySelector('div');
+                // photoCircle.innerHTML = `<img src="${photoData}" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;">`;
+            // }
+            
+            // document.querySelectorAll('.avatar-type-option').forEach(o => o.classList.remove('active'));
+            // if (photoOption) photoOption.classList.add('active');
+            
+            // updatePreview();
+            // modal.remove();
+            // alert('Photo saved! Click "Save Changes" to keep it. 📸');
+        // } else {
+           //  alert('Error saving photo: ' + result.error);
+        // }
+    // });
+// }
 
-async function loadPhotoAvatar() {
+// async function loadPhotoAvatar() {
     // Try to load from server first
-    const result = await apiCall('get_kid_avatar');
-    let photoData = null;
+    // const result = await apiCall('get_kid_avatar');
+    // let photoData = null;
     
-    if (result.ok && result.data.photo_data) {
-        photoData = result.data.photo_data;
+    // if (result.ok && result.data.photo_data) {
+        // photoData = result.data.photo_data;
         // Save to localStorage as cache
-        localStorage.setItem('kid_avatar_photo', photoData);
-    } else {
+        // localStorage.setItem('kid_avatar_photo', photoData);
+    // } else {
         // Fallback to localStorage
-        photoData = localStorage.getItem('kid_avatar_photo');
-    }
+        // photoData = localStorage.getItem('kid_avatar_photo');
+    // }
     
-    if (photoData) {
-        const photoOption = document.getElementById('photo-avatar-option');
-        if (photoOption) {
-            const photoCircle = photoOption.querySelector('div');
-            photoCircle.innerHTML = `<img src="${photoData}" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;">`;
-        }
-    }
-}
+    // if (photoData) {
+        // const photoOption = document.getElementById('photo-avatar-option');
+        // if (photoOption) {
+            // const photoCircle = photoOption.querySelector('div');
+            // photoCircle.innerHTML = `<img src="${photoData}" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;">`;
+        // }
+    // }
+// }
 
 function updatePreview() {
     console.log('=== updatePreview START ===');
@@ -1111,11 +1196,7 @@ function updatePreview() {
         size: nameSize + 'px',
         font: getFontFamily(nameFont)
     });
-    
-    // Apply avatar border and background
-    previewAvatar.style.border = `3px solid ${avatarBorderColor}`;
-    previewAvatar.style.background = 'white';
-    
+        
     // Apply avatar type
     const activeAvatarType = document.querySelector('.avatar-type-option.active');
     const avatarType = activeAvatarType ? activeAvatarType.dataset.avatar : 'logo';
@@ -1123,7 +1204,13 @@ function updatePreview() {
     console.log('Avatar type:', avatarType);
     
     if (avatarType === 'logo') {
-        previewAvatar.innerHTML = `<img src="/assets/kid-icon-192.png" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">`;
+        // Check if we have a saved custom icon
+        const settings = JSON.parse(localStorage.getItem('kid_settings') || '{}');
+        if (settings.avatarIcon) {
+            previewAvatar.innerHTML = `<img src="${settings.avatarIcon}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">`;
+        } else {
+            previewAvatar.innerHTML = `<img src="/assets/kid-icon-192.png" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">`;
+        }
     } else if (avatarType === 'photo') {
         const photoData = localStorage.getItem('kid_avatar_photo');
         if (photoData) {
@@ -1142,6 +1229,55 @@ function updatePreview() {
         previewAvatar.textContent = currentKid.kid_name?.[0] || 'A';
     }
     
+    // Apply saved border style to preview
+    const settings = JSON.parse(localStorage.getItem('kid_settings') || '{}');
+    const borderStyle = settings.borderStyle || 'solid';
+    const borderWidth = settings.borderWidth || 3;
+    
+    console.log('🎨 Applying border to preview:', borderStyle, borderWidth);
+    
+    // Clear previous border styles
+    previewAvatar.style.border = '';
+    previewAvatar.style.boxShadow = '';
+    previewAvatar.style.padding = '';
+    
+    // Ensure base styles
+    previewAvatar.style.borderRadius = '50%';
+    previewAvatar.style.overflow = 'hidden';
+    
+    // Apply the border style
+    switch(borderStyle) {
+        case 'solid':
+            previewAvatar.style.border = `${borderWidth}px solid ${avatarBorderColor}`;
+            break;
+        case 'dashed':
+            previewAvatar.style.border = `${borderWidth}px dashed ${avatarBorderColor}`;
+            break;
+        case 'dotted':
+            previewAvatar.style.border = `${borderWidth}px dotted ${avatarBorderColor}`;
+            break;
+        case 'double':
+            previewAvatar.style.border = `${borderWidth}px double ${avatarBorderColor}`;
+            break;
+        case 'glow':
+            previewAvatar.style.border = `${borderWidth}px solid ${avatarBorderColor}`;
+            previewAvatar.style.boxShadow = `0 0 15px ${avatarBorderColor}99`;
+            break;
+        case 'gradient':
+            previewAvatar.style.background = 'linear-gradient(45deg, #FF6B6B, #4ECDC4, #45B7D1, #FFA07A)';
+            previewAvatar.style.padding = `${borderWidth}px`;
+            const innerImg = previewAvatar.querySelector('img');
+            if (innerImg) {
+                innerImg.style.background = 'white';
+                innerImg.style.borderRadius = '50%';
+            }
+            break;
+        case 'neon':
+            previewAvatar.style.border = `${borderWidth}px solid #00FF88`;
+            previewAvatar.style.boxShadow = `0 0 20px rgba(0, 255, 136, 0.8), inset 0 0 10px rgba(0, 255, 136, 0.3)`;
+            break;
+    }
+    
     console.log('=== updatePreview END ===');
 }
 
@@ -1151,16 +1287,25 @@ let currentFilter = 'all';
 let avatarsData = { default: [], user: [], canUploadMore: true };
 
 async function openAvatarSelector() {
+    console.log('🚪 openAvatarSelector() called!');
     const modal = document.getElementById('icon-selector-modal');
+    console.log('📍 Modal element:', modal);
+    
     if (modal) {
+        console.log('✅ Modal found, displaying...');
         modal.style.display = 'flex';
+        console.log('📊 Modal display set to:', modal.style.display);
         
         // Load avatars from server
+        console.log('📥 Loading avatars from server...');
         await loadAvatars();
         
         // Load saved avatar
         const settings = JSON.parse(localStorage.getItem('kid_settings') || '{}');
         selectedAvatarUrl = settings.avatarIcon || null;
+        console.log('💾 Loaded saved avatar:', selectedAvatarUrl);
+    } else {
+        console.error('❌ Modal element NOT FOUND!');
     }
 }
 
@@ -1265,6 +1410,8 @@ async function deleteUserAvatar(filename) {
 }
 
 function initAvatarSelector() {
+    console.log('🚀 initAvatarSelector() called');
+    
     // Filter tabs
     document.querySelectorAll('.filter-tab').forEach(tab => {
         tab.addEventListener('click', () => {
@@ -1318,16 +1465,770 @@ function initAvatarSelector() {
         });
     }
     
-    // Update logo option to open modal
+    // **DEBUG**: Find and attach logo option click handler
+    console.log('🔍 Looking for logo option...');
     const logoOption = document.querySelector('.avatar-type-option[data-avatar="logo"]');
+    console.log('📍 Logo option found?', logoOption);
+    
     if (logoOption) {
-        logoOption.addEventListener('click', (e) => {
+        console.log('✅ Logo option EXISTS, attaching click listener...');
+        
+        // REMOVE any existing listeners by cloning
+        const newLogoOption = logoOption.cloneNode(true);
+        logoOption.parentNode.replaceChild(newLogoOption, logoOption);
+        
+        newLogoOption.addEventListener('click', (e) => {
+            console.log('🎯 LOGO CLICKED!!! Event:', e);
+            console.log('🛑 Preventing default and propagation...');
+            e.preventDefault();
             e.stopPropagation();
+            e.stopImmediatePropagation();
+            
+            console.log('✨ Setting logo as active...');
             document.querySelectorAll('.avatar-type-option').forEach(o => o.classList.remove('active'));
-            logoOption.classList.add('active');
+            newLogoOption.classList.add('active');
+            
+            console.log('🚪 Opening avatar selector modal...');
             openAvatarSelector();
+        }, true); // Use capture phase
+        
+        console.log('✅ Logo click listener attached!');
+    } else {
+        console.error('❌ Logo option NOT FOUND in DOM!');
+    }
+}
+
+// Border Style System
+let selectedBorderStyle = 'solid';
+let selectedBorderWidth = 3;
+
+function initBorderStyleSelector() {
+    console.log('🎨 initBorderStyleSelector() called');
+    
+    // Border style option click handler
+    const borderOption = document.querySelector('.avatar-type-option[data-avatar="border"]');
+    if (borderOption) {
+        console.log('✅ Border option found, attaching listener...');
+        
+        // Clone to remove any existing listeners
+        const newBorderOption = borderOption.cloneNode(true);
+        borderOption.parentNode.replaceChild(newBorderOption, borderOption);
+        
+        newBorderOption.addEventListener('click', (e) => {
+            console.log('🎨 BORDER OPTION CLICKED!');
+            e.preventDefault();
+            e.stopPropagation();
+            openBorderStyleModal();
         });
     }
+    
+    // Border style choices
+    document.querySelectorAll('.border-style-choice').forEach(choice => {
+        choice.addEventListener('click', () => {
+            const style = choice.dataset.style;
+            const width = choice.dataset.width;
+            
+            console.log('🎨 Border style selected:', style, 'width:', width);
+            
+            // Save the selection
+            selectedBorderStyle = style;
+            selectedBorderWidth = width;
+            
+            // Save to localStorage immediately
+            const settings = JSON.parse(localStorage.getItem('kid_settings') || '{}');
+            settings.borderStyle = style;
+            settings.borderWidth = width;
+            localStorage.setItem('kid_settings', JSON.stringify(settings));
+            
+            // Close modal
+            document.getElementById('border-style-modal').style.display = 'none';
+            
+            // Update preview to show the new border
+            console.log('🔄 Calling updatePreview...');
+            updatePreview();
+        });
+    });
+    
+    // Cancel button
+    const cancelBtn = document.getElementById('cancel-border-btn');
+    if (cancelBtn) {
+        cancelBtn.addEventListener('click', () => {
+            document.getElementById('border-style-modal').style.display = 'none';
+        });
+    }
+}
+
+function openBorderStyleModal() {
+    console.log('🎨 Opening border style modal...');
+    const modal = document.getElementById('border-style-modal');
+    if (modal) {
+        modal.style.display = 'flex';
+        console.log('✅ Border modal displayed');
+    } else {
+        console.error('❌ Border modal not found!');
+    }
+}
+
+// Theme System
+const themes = {
+    ocean: {
+        nameColor: '#0891B2',
+        nameFont: 'bubbly',
+        nameSize: 28,
+        borderStyle: 'glow',
+        borderWidth: 3,
+        avatarBorderColor: '#06B6D4',
+        // App styling
+        bgGradient: 'linear-gradient(135deg, #667eea 0%, #06b6d4 100%)',
+        bgColor: '#E0F2FE',
+        cardBg: '#FFFFFF',
+        accentColor: '#0891B2',
+        buttonColor: '#0891B2'
+    },
+    sunset: {
+        nameColor: '#F97316',
+        nameFont: 'playful',
+        nameSize: 26,
+        borderStyle: 'gradient',
+        borderWidth: 4,
+        avatarBorderColor: '#F97316',
+        // App styling
+        bgGradient: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
+        bgColor: '#FFF7ED',
+        cardBg: '#FFFFFF',
+        accentColor: '#F97316',
+        buttonColor: '#EA580C'
+    },
+    forest: {
+        nameColor: '#16A34A',
+        nameFont: 'bold',
+        nameSize: 28,
+        borderStyle: 'solid',
+        borderWidth: 4,
+        avatarBorderColor: '#22C55E',
+        // App styling
+        bgGradient: 'linear-gradient(135deg, #a8edea 0%, #16a34a 100%)',
+        bgColor: '#F0FDF4',
+        cardBg: '#FFFFFF',
+        accentColor: '#16A34A',
+        buttonColor: '#16A34A'
+    },
+    space: {
+        nameColor: '#8B5CF6',
+        nameFont: 'techno',
+        nameSize: 25,
+        borderStyle: 'neon',
+        borderWidth: 3,
+        avatarBorderColor: '#8B5CF6',
+        // App styling
+        bgGradient: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+        bgColor: '#F5F3FF',
+        cardBg: '#FFFFFF',
+        accentColor: '#8B5CF6',
+        buttonColor: '#7C3AED'
+    },
+    candy: {
+        nameColor: '#EC4899',
+        nameFont: 'bubbly',
+        nameSize: 27,
+        borderStyle: 'solid',
+        borderWidth: 3,
+        avatarBorderColor: '#F9A8D4',
+        // App styling
+        bgGradient: 'linear-gradient(135deg, #fbc2eb 0%, #a6c1ee 100%)',
+        bgColor: '#FDF2F8',
+        cardBg: '#FFFFFF',
+        accentColor: '#EC4899',
+        buttonColor: '#DB2777'
+    },
+    lava: {
+        nameColor: '#DC2626',
+        nameFont: 'chunky',
+        nameSize: 29,
+        borderStyle: 'glow',
+        borderWidth: 4,
+        avatarBorderColor: '#EF4444',
+        // App styling
+        bgGradient: 'linear-gradient(135deg, #ff6b6b 0%, #c92a2a 100%)',
+        bgColor: '#FEF2F2',
+        cardBg: '#FFFFFF',
+        accentColor: '#DC2626',
+        buttonColor: '#B91C1C'
+    },
+    mint: {
+        nameColor: '#10B981',
+        nameFont: 'elegant',
+        nameSize: 24,
+        borderStyle: 'dotted',
+        borderWidth: 3,
+        avatarBorderColor: '#6EE7B7',
+        // App styling
+        bgGradient: 'linear-gradient(135deg, #d4fc79 0%, #96e6a1 100%)',
+        bgColor: '#ECFDF5',
+        cardBg: '#FFFFFF',
+        accentColor: '#10B981',
+        buttonColor: '#059669'
+    },
+    midnight: {
+        nameColor: '#FBBF24',
+        nameFont: 'fancy',
+        nameSize: 26,
+        borderStyle: 'glow',
+        borderWidth: 3,
+        avatarBorderColor: '#FBBF24',
+        // App styling
+        bgGradient: 'linear-gradient(135deg, #1e3a8a 0%, #1e1b4b 100%)',
+        bgColor: '#1E293B',
+        cardBg: '#334155',
+        accentColor: '#FBBF24',
+        buttonColor: '#F59E0B',
+        textColor: '#F1F5F9' // Light text for dark theme
+    },
+    rainbow: {
+        nameColor: '#EC4899',
+        nameFont: 'comic',
+        nameSize: 28,
+        borderStyle: 'gradient',
+        borderWidth: 4,
+        avatarBorderColor: '#EC4899',
+        // App styling
+        bgGradient: 'linear-gradient(135deg, #fa709a 0%, #fee140 50%, #30cfd0 100%)',
+        bgColor: '#FFFBEB',
+        cardBg: '#FFFFFF',
+        accentColor: '#EC4899',
+        buttonColor: '#DB2777'
+    },
+    retro: {
+        nameColor: '#F472B6',
+        nameFont: 'retro',
+        nameSize: 23,
+        borderStyle: 'solid',
+        borderWidth: 5,
+        avatarBorderColor: '#F472B6',
+        // App styling
+        bgGradient: 'linear-gradient(135deg, #f857a6 0%, #ff5858 100%)',
+        bgColor: '#FEF2F2',
+        cardBg: '#FFFFFF',
+        accentColor: '#F472B6',
+        buttonColor: '#EC4899'
+    },
+    desert: {
+        nameColor: '#D97706',
+        nameFont: 'bold',
+        nameSize: 27,
+        borderStyle: 'double',
+        borderWidth: 5,
+        avatarBorderColor: '#F59E0B',
+        // App styling
+        bgGradient: 'linear-gradient(135deg, #ffeaa7 0%, #fdcb6e 100%)',
+        bgColor: '#FFFBEB',
+        cardBg: '#FFFFFF',
+        accentColor: '#D97706',
+        buttonColor: '#B45309'
+    },
+    arctic: {
+        nameColor: '#0EA5E9',
+        nameFont: 'default',
+        nameSize: 26,
+        borderStyle: 'glow',
+        borderWidth: 3,
+        avatarBorderColor: '#7DD3FC',
+        // App styling
+        bgGradient: 'linear-gradient(135deg, #e0f7fa 0%, #b3e5fc 100%)',
+        bgColor: '#F0F9FF',
+        cardBg: '#FFFFFF',
+        accentColor: '#0EA5E9',
+        buttonColor: '#0284C7'
+    }
+};
+
+function initThemeSelector() {
+    console.log('🎨 initThemeSelector() called');
+    
+    // Open theme modal button
+    const openBtn = document.getElementById('open-theme-modal-btn');
+    if (openBtn) {
+        openBtn.addEventListener('click', () => {
+            console.log('🎨 Opening theme modal...');
+            document.getElementById('theme-modal').style.display = 'flex';
+        });
+    }
+    
+    // Close theme modal button
+    const closeBtn = document.getElementById('close-theme-modal-btn');
+    if (closeBtn) {
+        closeBtn.addEventListener('click', () => {
+            document.getElementById('theme-modal').style.display = 'none';
+        });
+    }
+    
+    // Theme choices
+    document.querySelectorAll('.theme-choice').forEach(choice => {
+        choice.addEventListener('click', () => {
+            const themeName = choice.dataset.theme;
+            console.log('🎨 Theme selected:', themeName);
+            
+            applyTheme(themeName);
+            
+            // Visual feedback
+            document.querySelectorAll('.theme-choice').forEach(c => {
+                c.style.border = '2px solid #E5E7EB';
+                c.style.background = 'white';
+            });
+            choice.style.border = '2px solid #4F46E5';
+            choice.style.background = '#EEF2FF';
+            
+            // Close modal after selection
+            setTimeout(() => {
+                document.getElementById('theme-modal').style.display = 'none';
+            }, 500);
+        });
+    });
+}
+
+function applyTheme(themeName) {
+    const theme = themes[themeName];
+    if (!theme) {
+        console.error('Theme not found:', themeName);
+        return;
+    }
+    
+    console.log('✨ Applying theme:', themeName, theme);
+    
+    // Update form inputs
+    const nameColorInput = document.getElementById('name-color');
+    const nameFontInput = document.getElementById('name-font');
+    const nameSizeInput = document.getElementById('name-size');
+    const nameSizeValue = document.getElementById('name-size-value');
+    const borderColorInput = document.getElementById('avatar-border-color');
+    
+    if (nameColorInput) nameColorInput.value = theme.nameColor;
+    if (nameFontInput) nameFontInput.value = theme.nameFont;
+    if (nameSizeInput) {
+        nameSizeInput.value = theme.nameSize;
+        if (nameSizeValue) nameSizeValue.textContent = theme.nameSize + 'px';
+    }
+    if (borderColorInput) borderColorInput.value = theme.avatarBorderColor;
+    
+    // Update active font option visually
+    document.querySelectorAll('.font-option').forEach(o => o.classList.remove('active'));
+    const fontOption = document.querySelector(`.font-option[data-font="${theme.nameFont}"]`);
+    if (fontOption) fontOption.classList.add('active');
+    
+    // Save border style settings
+    selectedBorderStyle = theme.borderStyle;
+    selectedBorderWidth = theme.borderWidth;
+    
+    // Save all theme settings
+    const settings = JSON.parse(localStorage.getItem('kid_settings') || '{}');
+    settings.nameColor = theme.nameColor;
+    settings.nameFont = theme.nameFont;
+    settings.nameSize = theme.nameSize;
+    settings.avatarBorderColor = theme.avatarBorderColor;
+    settings.borderStyle = theme.borderStyle;
+    settings.borderWidth = theme.borderWidth;
+    settings.themeName = themeName; // Save theme name
+    settings.bgGradient = theme.bgGradient;
+    settings.bgColor = theme.bgColor;
+    settings.cardBg = theme.cardBg;
+    settings.accentColor = theme.accentColor;
+    settings.buttonColor = theme.buttonColor;
+    settings.textColor = theme.textColor || '#1F2937';
+    localStorage.setItem('kid_settings', JSON.stringify(settings));
+    
+    // Apply theme styling to app
+    applyThemeStyling(theme);
+    
+    // Update preview immediately
+    updatePreview();
+    
+    console.log(`✅ ${themeName.charAt(0).toUpperCase() + themeName.slice(1)} theme applied!`);
+}
+
+function applyThemeStyling(theme) {
+    console.log('🎨 Applying theme styling to app...', theme);
+    
+    const textColor = theme.textColor || '#1F2937';
+    const isDark = theme.textColor ? true : false;
+    
+    // Apply to app container with smooth gradient
+    const appScreen = document.getElementById('app-screen');
+    if (appScreen) {
+        appScreen.style.background = theme.bgGradient || theme.bgColor;
+        appScreen.style.transition = 'all 0.3s ease';
+        if (isDark) {
+            appScreen.style.color = textColor;
+        }
+    }
+    
+    // Apply to header with glass effect
+    const header = document.querySelector('.app-header');
+    if (header) {
+        header.style.background = isDark ? 'rgba(0,0,0,0.4)' : 'rgba(255,255,255,0.85)';
+        header.style.color = textColor;
+        header.style.backdropFilter = 'blur(20px)';
+        header.style.borderRadius = '0 0 24px 24px';
+        header.style.boxShadow = isDark 
+            ? '0 4px 20px rgba(0,0,0,0.5)' 
+            : '0 4px 20px rgba(0,0,0,0.1)';
+        header.style.padding = '16px 20px';
+    }
+    
+    // Apply to all cards with smooth rounded corners
+    document.querySelectorAll('.card, .chore-item, .quest-item, .reward-item, .history-item').forEach(card => {
+        card.style.background = isDark 
+            ? 'rgba(255,255,255,0.1)' 
+            : theme.cardBg;
+        card.style.color = textColor;
+        card.style.borderRadius = '20px';
+        card.style.border = `2px solid ${theme.accentColor}22`;
+        card.style.boxShadow = isDark
+            ? '0 8px 32px rgba(0,0,0,0.3)'
+            : '0 8px 32px rgba(0,0,0,0.08)';
+        card.style.transition = 'all 0.3s ease';
+        card.style.backdropFilter = isDark ? 'blur(10px)' : 'none';
+    });
+    
+    // Style the main content areas
+    document.querySelectorAll('.view').forEach(view => {
+        view.style.borderRadius = '24px 24px 0 0';
+        view.style.padding = '20px';
+    });
+    
+    // Apply to all buttons with smooth styling
+    document.querySelectorAll('.btn-primary, .complete-btn').forEach(btn => {
+        btn.style.background = `linear-gradient(135deg, ${theme.buttonColor} 0%, ${theme.accentColor} 100%)`;
+        btn.style.border = 'none';
+        btn.style.borderRadius = '16px';
+        btn.style.boxShadow = `0 4px 16px ${theme.buttonColor}44`;
+        btn.style.transition = 'all 0.3s ease';
+        btn.style.fontWeight = '600';
+    });
+    
+    // Apply to all secondary buttons
+    document.querySelectorAll('.btn:not(.btn-primary)').forEach(btn => {
+        btn.style.borderRadius = '16px';
+        btn.style.transition = 'all 0.3s ease';
+    });
+    
+    // Apply to navigation with smooth styling
+    const nav = document.querySelector('.app-nav');
+    if (nav) {
+        nav.style.background = isDark ? 'rgba(0,0,0,0.4)' : 'rgba(255,255,255,0.95)';
+        nav.style.borderRadius = '24px 24px 0 0';
+        nav.style.backdropFilter = 'blur(20px)';
+        nav.style.boxShadow = isDark
+            ? '0 -4px 20px rgba(0,0,0,0.3)'
+            : '0 -4px 20px rgba(0,0,0,0.1)';
+    }
+    
+    document.querySelectorAll('.nav-item').forEach(navItem => {
+        const isActive = navItem.classList.contains('active');
+        navItem.style.borderRadius = '16px';
+        navItem.style.transition = 'all 0.3s ease';
+        
+        if (isActive) {
+            navItem.style.color = theme.accentColor;
+            navItem.style.background = isDark 
+                ? `${theme.accentColor}22` 
+                : `${theme.accentColor}11`;
+            navItem.style.transform = 'translateY(-2px)';
+        } else {
+            navItem.style.color = isDark ? '#94A3B8' : '#6B7280';
+            navItem.style.background = 'transparent';
+        }
+    });
+    
+    // Style the settings view
+    const settingsView = document.getElementById('view-settings');
+    if (settingsView) {
+        settingsView.style.background = isDark 
+            ? 'rgba(0,0,0,0.2)' 
+            : theme.bgColor;
+        settingsView.style.color = textColor;
+        settingsView.style.borderRadius = '24px 24px 0 0';
+    }
+    
+    // Style all form inputs
+    document.querySelectorAll('input[type="text"], input[type="number"], input[type="color"], select, textarea').forEach(input => {
+        input.style.borderRadius = '12px';
+        input.style.border = `2px solid ${theme.accentColor}33`;
+        input.style.transition = 'all 0.3s ease';
+        input.style.background = isDark ? 'rgba(255,255,255,0.1)' : 'white';
+        input.style.color = textColor;
+    });
+    
+    // Style color inputs specially
+    document.querySelectorAll('input[type="color"]').forEach(input => {
+        input.style.borderRadius = '12px';
+        input.style.height = '50px';
+        input.style.cursor = 'pointer';
+        input.style.border = `3px solid ${theme.accentColor}44`;
+    });
+    
+    // Style range sliders
+    document.querySelectorAll('input[type="range"]').forEach(slider => {
+        slider.style.accentColor = theme.accentColor;
+    });
+    
+    // Style modal overlays with glass effect
+    document.querySelectorAll('.modal-content-kid').forEach(modal => {
+        modal.style.background = isDark 
+            ? 'rgba(30, 41, 59, 0.95)' 
+            : 'rgba(255, 255, 255, 0.95)';
+        modal.style.color = textColor;
+        modal.style.borderRadius = '24px';
+        modal.style.backdropFilter = 'blur(20px)';
+        modal.style.border = `2px solid ${theme.accentColor}33`;
+        modal.style.boxShadow = isDark
+            ? '0 20px 60px rgba(0,0,0,0.5)'
+            : '0 20px 60px rgba(0,0,0,0.15)';
+    });
+    
+    // Style avatar options
+    document.querySelectorAll('.avatar-type-option').forEach(option => {
+        option.style.borderRadius = '16px';
+        option.style.transition = 'all 0.3s ease';
+        option.style.cursor = 'pointer';
+        
+        if (option.classList.contains('active')) {
+            option.style.borderColor = theme.accentColor;
+            option.style.background = `${theme.accentColor}11`;
+            option.style.transform = 'scale(1.05)';
+        }
+    });
+    
+    // Style font options
+    document.querySelectorAll('.font-option').forEach(option => {
+        option.style.borderRadius = '12px';
+        option.style.transition = 'all 0.3s ease';
+        option.style.cursor = 'pointer';
+        
+        if (option.classList.contains('active')) {
+            option.style.borderColor = theme.accentColor;
+            option.style.background = `${theme.accentColor}11`;
+        }
+    });
+    
+    // Style the preview box
+    const previewBox = document.querySelector('#preview-box, .preview-box');
+    if (previewBox) {
+        previewBox.style.borderRadius = '20px';
+        previewBox.style.background = isDark 
+            ? 'rgba(255,255,255,0.1)' 
+            : 'white';
+        previewBox.style.border = `2px solid ${theme.accentColor}33`;
+        previewBox.style.boxShadow = isDark
+            ? '0 8px 32px rgba(0,0,0,0.3)'
+            : '0 8px 32px rgba(0,0,0,0.08)';
+        previewBox.style.backdropFilter = isDark ? 'blur(10px)' : 'none';
+    }
+    
+    // Style theme button
+    const themeBtn = document.getElementById('open-theme-modal-btn');
+    if (themeBtn) {
+        themeBtn.style.borderRadius = '16px';
+        themeBtn.style.boxShadow = '0 4px 16px rgba(102, 126, 234, 0.4)';
+        themeBtn.style.transition = 'all 0.3s ease';
+    }
+    
+    // Add hover effects to interactive elements
+    const style = document.createElement('style');
+    style.textContent = `
+        .card:hover, .chore-item:hover, .quest-item:hover, .reward-item:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 40px rgba(0,0,0,0.12) !important;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px ${theme.buttonColor}66 !important;
+        }
+        
+        .nav-item:hover:not(.active) {
+            background: ${isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)'} !important;
+        }
+        
+        .avatar-type-option:hover, .font-option:hover, .theme-choice:hover, .border-style-choice:hover {
+            transform: scale(1.05);
+            border-color: ${theme.accentColor} !important;
+        }
+        
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: ${theme.accentColor} !important;
+            box-shadow: 0 0 0 3px ${theme.accentColor}22 !important;
+        }
+    `;
+    
+    // Remove old style tag if exists
+    const oldStyle = document.getElementById('theme-hover-styles');
+    if (oldStyle) oldStyle.remove();
+    
+    style.id = 'theme-hover-styles';
+    document.head.appendChild(style);
+    
+    console.log('✅ Enhanced theme styling applied!');
+}
+
+function openBorderStyleModal() {
+    console.log('🎨 Opening border style modal...');
+    const modal = document.getElementById('border-style-modal');
+    if (modal) {
+        modal.style.display = 'flex';
+        console.log('✅ Border modal displayed');
+    } else {
+        console.error('❌ Border modal not found!');
+    }
+}
+
+function applyBorderStyle(style, width) {
+    selectedBorderStyle = style;
+    selectedBorderWidth = width;
+    
+    const previewAvatar = document.getElementById('preview-avatar');
+    const borderColor = document.getElementById('avatar-border-color')?.value || '#4F46E5';
+    
+    // Only apply to preview, NOT the header avatar yet
+    if (!previewAvatar) return;
+    
+    // CRITICAL: Completely reset ALL border/shadow/background styles
+    previewAvatar.style.cssText = previewAvatar.style.cssText.replace(/border[^;]*;?/gi, '');
+    previewAvatar.style.cssText = previewAvatar.style.cssText.replace(/box-shadow[^;]*;?/gi, '');
+    previewAvatar.style.cssText = previewAvatar.style.cssText.replace(/padding[^;]*;?/gi, '');
+    previewAvatar.style.cssText = previewAvatar.style.cssText.replace(/background[^;]*;?/gi, '');
+    
+    // Ensure base styles are set
+    previewAvatar.style.borderRadius = '50%';
+    previewAvatar.style.display = 'flex';
+    previewAvatar.style.alignItems = 'center';
+    previewAvatar.style.justifyContent = 'center';
+    previewAvatar.style.overflow = 'hidden';
+    
+    // Apply the selected border style
+    switch(style) {
+        case 'solid':
+            previewAvatar.style.border = `${width}px solid ${borderColor}`;
+            previewAvatar.style.background = 'white';
+            break;
+        case 'dashed':
+            previewAvatar.style.border = `${width}px dashed ${borderColor}`;
+            previewAvatar.style.background = 'white';
+            break;
+        case 'dotted':
+            previewAvatar.style.border = `${width}px dotted ${borderColor}`;
+            previewAvatar.style.background = 'white';
+            break;
+        case 'double':
+            previewAvatar.style.border = `${width}px double ${borderColor}`;
+            previewAvatar.style.background = 'white';
+            break;
+        case 'glow':
+            previewAvatar.style.border = `${width}px solid ${borderColor}`;
+            previewAvatar.style.background = 'white';
+            previewAvatar.style.boxShadow = `0 0 15px ${borderColor}99`;
+            break;
+        case 'gradient':
+            previewAvatar.style.background = 'linear-gradient(45deg, #FF6B6B, #4ECDC4, #45B7D1, #FFA07A)';
+            previewAvatar.style.padding = `${width}px`;
+            // Ensure inner image has white background
+            const innerImg = previewAvatar.querySelector('img');
+            if (innerImg) {
+                innerImg.style.background = 'white';
+                innerImg.style.borderRadius = '50%';
+            }
+            break;
+        case 'neon':
+            previewAvatar.style.border = `${width}px solid #00FF88`;
+            previewAvatar.style.background = 'white';
+            previewAvatar.style.boxShadow = `0 0 20px rgba(0, 255, 136, 0.8), inset 0 0 10px rgba(0, 255, 136, 0.3)`;
+            break;
+    }
+    
+    // Save to localStorage (but don't apply to header yet)
+    const settings = JSON.parse(localStorage.getItem('kid_settings') || '{}');
+    settings.borderStyle = style;
+    settings.borderWidth = width;
+    localStorage.setItem('kid_settings', JSON.stringify(settings));
+    
+    console.log('✅ Border style applied to PREVIEW:', style, width);
+}
+
+function applyBorderToHeader() {
+    console.trace('🔍 applyBorderToHeader called from:');  // ADD THIS LINE
+    
+    const avatar = document.getElementById('kid-avatar');
+    if (!avatar) {
+        console.log('❌ No avatar element found');
+        return;
+    }    
+    const settings = JSON.parse(localStorage.getItem('kid_settings') || '{}');
+    const style = settings.borderStyle || 'solid';
+    const width = settings.borderWidth || 3;
+    const borderColor = settings.avatarBorderColor || '#4F46E5';
+    
+    console.log('🎨 applyBorderToHeader called with:', {style, width, borderColor});
+    
+    // NUCLEAR OPTION: Clear ALL inline styles related to borders
+    avatar.style.border = 'none';
+    avatar.style.boxShadow = 'none';
+    avatar.style.padding = '0';
+    avatar.style.outline = 'none';
+    
+    // Re-apply essential base styles
+    avatar.style.borderRadius = '50%';
+    avatar.style.display = 'flex';
+    avatar.style.alignItems = 'center';
+    avatar.style.justifyContent = 'center';
+    avatar.style.overflow = 'hidden';
+    avatar.style.width = '50px';
+    avatar.style.height = '50px';
+    
+    console.log('🎨 Now applying border style:', style);
+    
+    switch(style) {
+        case 'solid':
+            avatar.style.border = `${width}px solid ${borderColor}`;
+            console.log('✅ Applied solid border:', avatar.style.border);
+            break;
+        case 'dashed':
+            avatar.style.border = `${width}px dashed ${borderColor}`;
+            console.log('✅ Applied dashed border');
+            break;
+        case 'dotted':
+            avatar.style.border = `${width}px dotted ${borderColor}`;
+            console.log('✅ Applied dotted border');
+            break;
+        case 'double':
+            avatar.style.border = `${width}px double ${borderColor}`;
+            console.log('✅ Applied double border');
+            break;
+        case 'glow':
+            avatar.style.border = `${width}px solid ${borderColor}`;
+            avatar.style.boxShadow = `0 0 15px ${borderColor}99`;
+            console.log('✅ Applied glow border');
+            break;
+        case 'gradient':
+            avatar.style.background = `linear-gradient(45deg, #FF6B6B, #4ECDC4, #45B7D1, #FFA07A)`;
+            avatar.style.padding = `${width}px`;
+            const innerImg = avatar.querySelector('img');
+            if (innerImg) {
+                innerImg.style.background = 'white';
+                innerImg.style.borderRadius = '50%';
+            }
+            console.log('✅ Applied gradient border');
+            break;
+        case 'neon':
+            avatar.style.border = `${width}px solid #00FF88`;
+            avatar.style.boxShadow = `0 0 20px rgba(0, 255, 136, 0.8), inset 0 0 10px rgba(0, 255, 136, 0.3)`;
+            console.log('✅ Applied neon border');
+            break;
+        default:
+            avatar.style.border = `${width}px solid ${borderColor}`;
+            console.log('✅ Applied default solid border');
+    }
+    
+    console.log('✅ Header avatar border updated!');
 }
 
 async function handleAvatarUpload(event) {
@@ -1339,38 +2240,177 @@ async function handleAvatarUpload(event) {
         return;
     }
     
-    if (file.size > 500000) {
-        alert('Image too large. Max 500KB');
-        return;
-    }
+    // NO SIZE LIMIT - we're cropping it down anyway!
+    console.log('📸 Image selected:', file.name, 'Size:', Math.round(file.size / 1024) + 'KB');
     
+    // Read the file and show crop modal
     const reader = new FileReader();
-    reader.onload = async (e) => {
-        const photoData = e.target.result;
-        
-        try {
-            const result = await apiCall('upload_avatar_photo', { photo_data: photoData });
-            if (result.ok) {
-                await loadAvatars();
-                selectedAvatarUrl = result.data.url;
-                renderAvatarGrid();
-            } else {
-                alert('Upload failed: ' + result.error);
-            }
-        } catch (error) {
-            console.error('Upload error:', error);
-            alert('Upload failed');
-        }
+    reader.onload = function(e) {
+        const img = new Image();
+        img.onload = async function() {
+            console.log('🖼️ Image loaded, dimensions:', img.width, 'x', img.height);
+            // Show crop modal for this image
+            showCropModalForIcon(img);
+        };
+        img.src = e.target.result;
     };
     reader.readAsDataURL(file);
 }
 
-// Initialize when DOM ready
-document.addEventListener('DOMContentLoaded', () => {
-    if (document.getElementById('icon-selector-modal')) {
-        initAvatarSelector();
+function showCropModalForIcon(img) {
+    // Create modal (same as showCropModal but saves to icon system)
+    const modal = document.createElement('div');
+    modal.className = 'modal-overlay';
+    modal.style.zIndex = '10001'; // Higher than avatar selector modal
+    
+    modal.innerHTML = `
+        <div class="modal-content-kid" style="max-width: 500px;">
+            <h3 style="margin-bottom: 20px;">Adjust Your Icon 🎨</h3>
+            
+            <div style="text-align: center; margin-bottom: 20px;">
+                <canvas id="crop-canvas-icon" style="max-width: 100%; border: 3px solid #4F46E5; border-radius: 12px; cursor: move;"></canvas>
+            </div>
+            
+            <div style="margin-bottom: 20px;">
+                <label style="display: block; margin-bottom: 8px; font-weight: 600;">Zoom:</label>
+                <input type="range" id="zoom-slider-icon" min="50" max="200" value="100" style="width: 100%;">
+            </div>
+            
+            <div style="display: flex; gap: 10px;">
+                <button class="btn btn-secondary" onclick="this.closest('.modal-overlay').remove()" style="flex: 1;">Cancel</button>
+                <button class="btn btn-primary" id="save-icon-btn" style="flex: 1;">Save Icon ✨</button>
+            </div>
+        </div>
+    `;
+    
+    document.body.appendChild(modal);
+    
+    // Setup canvas
+    const canvas = document.getElementById('crop-canvas-icon');
+    const ctx = canvas.getContext('2d');
+    const size = 300;
+    canvas.width = size;
+    canvas.height = size;
+    
+    const initialScale = Math.max(size / img.width, size / img.height);
+    let zoom = initialScale;
+    let offsetX = 0;
+    let offsetY = 0;
+    let isDragging = false;
+    let startX = 0;
+    let startY = 0;
+    
+    function drawImage() {
+        ctx.clearRect(0, 0, size, size);
+        const scaledWidth = img.width * zoom;
+        const scaledHeight = img.height * zoom;
+        const x = (size - scaledWidth) / 2 + offsetX;
+        const y = (size - scaledHeight) / 2 + offsetY;
+        ctx.drawImage(img, x, y, scaledWidth, scaledHeight);
     }
-});
+    
+    drawImage();
+    
+    // Zoom slider
+    const zoomSlider = document.getElementById('zoom-slider-icon');
+    zoomSlider.value = 100;
+    zoomSlider.addEventListener('input', (e) => {
+        const sliderValue = parseInt(e.target.value);
+        zoom = initialScale * (sliderValue / 100);
+        drawImage();
+    });
+    
+    // Mouse drag
+    canvas.addEventListener('mousedown', (e) => {
+        isDragging = true;
+        const rect = canvas.getBoundingClientRect();
+        startX = e.clientX - rect.left - offsetX;
+        startY = e.clientY - rect.top - offsetY;
+    });
+    
+    canvas.addEventListener('mousemove', (e) => {
+        if (isDragging) {
+            const rect = canvas.getBoundingClientRect();
+            offsetX = e.clientX - rect.left - startX;
+            offsetY = e.clientY - rect.top - startY;
+            drawImage();
+        }
+    });
+    
+    canvas.addEventListener('mouseup', () => isDragging = false);
+    canvas.addEventListener('mouseleave', () => isDragging = false);
+    
+    // Touch drag
+    canvas.addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        isDragging = true;
+        const touch = e.touches[0];
+        const rect = canvas.getBoundingClientRect();
+        startX = touch.clientX - rect.left - offsetX;
+        startY = touch.clientY - rect.top - offsetY;
+    });
+    
+    canvas.addEventListener('touchmove', (e) => {
+        e.preventDefault();
+        if (isDragging) {
+            const touch = e.touches[0];
+            const rect = canvas.getBoundingClientRect();
+            offsetX = touch.clientX - rect.left - startX;
+            offsetY = touch.clientY - rect.top - startY;
+            drawImage();
+        }
+    });
+    
+    canvas.addEventListener('touchend', () => isDragging = false);
+    
+        // Save button - uploads to server as user avatar
+    document.getElementById('save-icon-btn').addEventListener('click', async () => {
+        console.log('💾 Saving icon...');
+        
+        const finalCanvas = document.createElement('canvas');
+        finalCanvas.width = 200;
+        finalCanvas.height = 200;
+        const finalCtx = finalCanvas.getContext('2d');
+        finalCtx.drawImage(canvas, 0, 0, size, size, 0, 0, 200, 200);
+        
+        const photoData = finalCanvas.toDataURL('image/png', 0.9);
+        console.log('📦 Image data created, size:', Math.round(photoData.length / 1024) + 'KB');
+        
+        // Upload to server via upload_avatar_photo endpoint
+        console.log('📤 Uploading to server...');
+        const result = await apiCall('upload_avatar_photo', { photo_data: photoData });
+        
+        console.log('📥 Server response:', result);
+        
+        if (result.ok) {
+            console.log('✅ Upload successful! URL:', result.data.url);
+            
+            // Reload avatars in the selector
+            await loadAvatars();
+            selectedAvatarUrl = result.data.url;
+            renderAvatarGrid();
+            
+            // Switch to "My Photos" filter to show the new upload
+            currentFilter = 'user';
+            document.querySelectorAll('.filter-tab').forEach(t => {
+                t.style.background = '#F3F4F6';
+                t.style.color = '#6B7280';
+            });
+            const userTab = document.getElementById('filter-user');
+            if (userTab) {
+                userTab.style.background = '#EEF2FF';
+                userTab.style.color = '#4F46E5';
+            }
+            renderAvatarGrid();
+            
+            modal.remove();
+            alert('Icon uploaded and added to "My Photos"! Select it from the grid. ✨');
+        } else {
+            console.error('❌ Upload failed:', result.error);
+            alert('Upload failed: ' + result.error);
+        }
+    });
+}
 
 function attachSettingsListeners() {
     const nameSize = document.getElementById('name-size');
@@ -1425,22 +2465,33 @@ function attachSettingsListeners() {
             updatePreview();
         });
     });
-    document.querySelectorAll('.avatar-type-option').forEach(option => {
-        option.addEventListener('click', () => {
-            document.querySelectorAll('.avatar-type-option').forEach(o => o.classList.remove('active'));
-            option.classList.add('active');
-            updatePreview();
-        });
+    // **DEBUG**: Avatar type options - SKIP logo and border (they have special handling)
+    console.log('🎨 Attaching avatar type option listeners...');
+    const avatarTypeOptions = document.querySelectorAll('.avatar-type-option');
+    console.log('📍 Found avatar type options:', avatarTypeOptions.length);
+    
+    avatarTypeOptions.forEach((option, index) => {
+        console.log(`  - Option ${index}: data-avatar="${option.dataset.avatar}"`);
+        
+        // Don't attach the general handler to logo or border - they have special behavior
+        if (option.dataset.avatar !== 'logo' && option.dataset.avatar !== 'border') {
+            console.log(`    ✅ Attaching general handler to ${option.dataset.avatar}`);
+            option.addEventListener('click', (e) => {
+                console.log(`🖱️ ${option.dataset.avatar} clicked (general handler)`);
+                document.querySelectorAll('.avatar-type-option').forEach(o => o.classList.remove('active'));
+                option.classList.add('active');
+                updatePreview();
+            });
+        } else {
+            console.log(`    ⏭️ SKIPPING ${option.dataset.avatar} - it has special handling`);
+        }
     });
     
     // Avatar border color
     const avatarBorderColor = document.getElementById('avatar-border-color');
     if (avatarBorderColor) {
         avatarBorderColor.addEventListener('input', updatePreview);
-    }
-    // Initialize photo avatar
-    initPhotoAvatar();
-    loadPhotoAvatar();
+    }    
 }
 
 // Initialize

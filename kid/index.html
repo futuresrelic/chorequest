@@ -157,11 +157,11 @@
                         <span style="font-size: 12px; color: #6B7280; font-weight: 600;">Initial</span>
                     </div>
                     
-                    <div class="avatar-type-option" data-avatar="photo" id="photo-avatar-option" style="flex: 1; padding: 10px; border: 2px solid #E5E7EB; border-radius: 8px; cursor: pointer; text-align: center;">
-                        <div style="width: 50px; height: 50px; margin: 0 auto 6px; background: #E5E7EB; border: 3px solid #4F46E5; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 24px;">
-                            📷
+                    <div class="avatar-type-option" data-avatar="border" id="border-style-option" style="flex: 1; padding: 10px; border: 2px solid #E5E7EB; border-radius: 8px; cursor: pointer; text-align: center;">
+                        <div style="width: 50px; height: 50px; margin: 0 auto 6px; background: white; border: 3px solid #4F46E5; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 24px;">
+                            🎨
                         </div>
-                        <span style="font-size: 12px; color: #6B7280; font-weight: 600;">Photo</span>
+                        <span style="font-size: 12px; color: #6B7280; font-weight: 600;">Border</span>
                     </div>
                 </div>
                 <input type="file" id="avatar-photo-input" accept="image/*" capture="user" style="display: none;">
@@ -173,6 +173,13 @@
                 <input type="color" id="avatar-border-color" value="#4F46E5" style="width: 100%; height: 44px; border: 2px solid #E5E7EB; border-radius: 6px; cursor: pointer; padding: 3px;">
             </div>
             
+            <!-- Theme Selector Button -->
+<div style="margin-bottom: 20px;">
+    <button id="open-theme-modal-btn" class="btn" style="width: 100%; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; font-weight: 600; padding: 12px;">
+        🎨 Choose a Theme
+    </button>
+</div>
+
             <!-- PREVIEW -->
             <div style="margin-bottom: 16px; padding: 14px; background: linear-gradient(135deg, #F9FAFB 0%, #F3F4F6 100%); border-radius: 8px; border: 2px solid #E5E7EB;">
                 <div style="display: flex; align-items: center; gap: 12px;">
@@ -282,6 +289,178 @@
             </div>
         </div>
     </div>
+
+    <!-- Border Style Modal -->
+    <div id="border-style-modal" class="modal-overlay" style="display: none;">
+        <div class="modal-content-kid" style="max-width: 500px;">
+            <h3 style="margin-bottom: 16px; font-size: 18px;">Choose Border Style 🎨</h3>
+            
+            <!-- Border Style Grid -->
+            <div id="border-style-grid" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 16px;">
+                
+                <!-- Solid -->
+                <div class="border-style-choice" data-style="solid" data-width="3" style="padding: 16px; border: 2px solid #E5E7EB; border-radius: 10px; cursor: pointer; text-align: center; transition: all 0.2s;">
+                    <div style="width: 60px; height: 60px; margin: 0 auto 8px; border: 3px solid #4F46E5; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; color: #4F46E5;">A</div>
+                    <span style="font-size: 13px; font-weight: 600;">Solid</span>
+                </div>
+                
+                <!-- Thick -->
+                <div class="border-style-choice" data-style="solid" data-width="5" style="padding: 16px; border: 2px solid #E5E7EB; border-radius: 10px; cursor: pointer; text-align: center; transition: all 0.2s;">
+                    <div style="width: 60px; height: 60px; margin: 0 auto 8px; border: 5px solid #4F46E5; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; color: #4F46E5;">A</div>
+                    <span style="font-size: 13px; font-weight: 600;">Thick</span>
+                </div>
+                
+                <!-- Dashed -->
+                <div class="border-style-choice" data-style="dashed" data-width="3" style="padding: 16px; border: 2px solid #E5E7EB; border-radius: 10px; cursor: pointer; text-align: center; transition: all 0.2s;">
+                    <div style="width: 60px; height: 60px; margin: 0 auto 8px; border: 3px dashed #4F46E5; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; color: #4F46E5;">A</div>
+                    <span style="font-size: 13px; font-weight: 600;">Dashed</span>
+                </div>
+                
+                <!-- Dotted -->
+                <div class="border-style-choice" data-style="dotted" data-width="3" style="padding: 16px; border: 2px solid #E5E7EB; border-radius: 10px; cursor: pointer; text-align: center; transition: all 0.2s;">
+                    <div style="width: 60px; height: 60px; margin: 0 auto 8px; border: 3px dotted #4F46E5; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; color: #4F46E5;">A</div>
+                    <span style="font-size: 13px; font-weight: 600;">Dotted</span>
+                </div>
+                
+                <!-- Double -->
+                <div class="border-style-choice" data-style="double" data-width="5" style="padding: 16px; border: 2px solid #E5E7EB; border-radius: 10px; cursor: pointer; text-align: center; transition: all 0.2s;">
+                    <div style="width: 60px; height: 60px; margin: 0 auto 8px; border: 5px double #4F46E5; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; color: #4F46E5;">A</div>
+                    <span style="font-size: 13px; font-weight: 600;">Double</span>
+                </div>
+                
+                <!-- Glow -->
+                <div class="border-style-choice" data-style="glow" data-width="3" style="padding: 16px; border: 2px solid #E5E7EB; border-radius: 10px; cursor: pointer; text-align: center; transition: all 0.2s;">
+                    <div style="width: 60px; height: 60px; margin: 0 auto 8px; border: 3px solid #4F46E5; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; color: #4F46E5; box-shadow: 0 0 15px rgba(79, 70, 229, 0.6);">A</div>
+                    <span style="font-size: 13px; font-weight: 600;">Glow</span>
+                </div>
+                
+                <!-- Rainbow -->
+                <div class="border-style-choice" data-style="gradient" data-width="4" style="padding: 16px; border: 2px solid #E5E7EB; border-radius: 10px; cursor: pointer; text-align: center; transition: all 0.2s;">
+                    <div style="width: 60px; height: 60px; margin: 0 auto 8px; background: linear-gradient(45deg, #FF6B6B, #4ECDC4, #45B7D1, #FFA07A); padding: 3px; border-radius: 50%;">
+                        <div style="width: 100%; height: 100%; background: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; color: #4F46E5;">A</div>
+                    </div>
+                    <span style="font-size: 13px; font-weight: 600;">Rainbow</span>
+                </div>
+                
+                <!-- Neon -->
+                <div class="border-style-choice" data-style="neon" data-width="3" style="padding: 16px; border: 2px solid #E5E7EB; border-radius: 10px; cursor: pointer; text-align: center; transition: all 0.2s;">
+                    <div style="width: 60px; height: 60px; margin: 0 auto 8px; border: 3px solid #00FF88; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; color: #00FF88; box-shadow: 0 0 20px rgba(0, 255, 136, 0.8), inset 0 0 10px rgba(0, 255, 136, 0.3);">A</div>
+                    <span style="font-size: 13px; font-weight: 600;">Neon</span>
+                </div>
+                
+            </div>
+            
+            <!-- Action Buttons -->
+            <div style="display: flex; gap: 10px;">
+                <button class="btn" id="cancel-border-btn" style="flex: 1; background: #6B7280; color: white;">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+<!-- Theme Modal -->
+<div id="theme-modal" class="modal-overlay" style="display: none;">
+    <div class="modal-content-kid" style="max-width: 600px; max-height: 90vh; overflow-y: auto;">
+        <h3 style="margin-bottom: 16px; font-size: 18px;">Choose Your Theme 🎨</h3>
+        
+        <p style="font-size: 13px; color: #6B7280; margin-bottom: 16px;">Pick a theme to instantly update your colors, font, and border!</p>
+        
+        <!-- Theme Grid -->
+        <div id="theme-grid" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 16px;">
+            
+            <!-- Ocean Adventure -->
+            <div class="theme-choice" data-theme="ocean" style="padding: 16px; border: 2px solid #E5E7EB; border-radius: 10px; cursor: pointer; text-align: center; transition: all 0.2s;">
+                <div style="font-size: 32px; margin-bottom: 8px;">🌊</div>
+                <div style="font-weight: 600; font-size: 13px; margin-bottom: 4px;">Ocean</div>
+                <div style="font-size: 11px; color: #6B7280;">Adventure</div>
+            </div>
+            
+            <!-- Sunset Vibes -->
+            <div class="theme-choice" data-theme="sunset" style="padding: 16px; border: 2px solid #E5E7EB; border-radius: 10px; cursor: pointer; text-align: center; transition: all 0.2s;">
+                <div style="font-size: 32px; margin-bottom: 8px;">🌅</div>
+                <div style="font-weight: 600; font-size: 13px; margin-bottom: 4px;">Sunset</div>
+                <div style="font-size: 11px; color: #6B7280;">Vibes</div>
+            </div>
+            
+            <!-- Forest Quest -->
+            <div class="theme-choice" data-theme="forest" style="padding: 16px; border: 2px solid #E5E7EB; border-radius: 10px; cursor: pointer; text-align: center; transition: all 0.2s;">
+                <div style="font-size: 32px; margin-bottom: 8px;">🌲</div>
+                <div style="font-weight: 600; font-size: 13px; margin-bottom: 4px;">Forest</div>
+                <div style="font-size: 11px; color: #6B7280;">Quest</div>
+            </div>
+            
+            <!-- Space Explorer -->
+            <div class="theme-choice" data-theme="space" style="padding: 16px; border: 2px solid #E5E7EB; border-radius: 10px; cursor: pointer; text-align: center; transition: all 0.2s;">
+                <div style="font-size: 32px; margin-bottom: 8px;">🚀</div>
+                <div style="font-weight: 600; font-size: 13px; margin-bottom: 4px;">Space</div>
+                <div style="font-size: 11px; color: #6B7280;">Explorer</div>
+            </div>
+            
+            <!-- Cotton Candy -->
+            <div class="theme-choice" data-theme="candy" style="padding: 16px; border: 2px solid #E5E7EB; border-radius: 10px; cursor: pointer; text-align: center; transition: all 0.2s;">
+                <div style="font-size: 32px; margin-bottom: 8px;">🍭</div>
+                <div style="font-weight: 600; font-size: 13px; margin-bottom: 4px;">Cotton</div>
+                <div style="font-size: 11px; color: #6B7280;">Candy</div>
+            </div>
+            
+            <!-- Lava Zone -->
+            <div class="theme-choice" data-theme="lava" style="padding: 16px; border: 2px solid #E5E7EB; border-radius: 10px; cursor: pointer; text-align: center; transition: all 0.2s;">
+                <div style="font-size: 32px; margin-bottom: 8px;">🌋</div>
+                <div style="font-weight: 600; font-size: 13px; margin-bottom: 4px;">Lava</div>
+                <div style="font-size: 11px; color: #6B7280;">Zone</div>
+            </div>
+            
+            <!-- Mint Ice Cream -->
+            <div class="theme-choice" data-theme="mint" style="padding: 16px; border: 2px solid #E5E7EB; border-radius: 10px; cursor: pointer; text-align: center; transition: all 0.2s;">
+                <div style="font-size: 32px; margin-bottom: 8px;">🍦</div>
+                <div style="font-weight: 600; font-size: 13px; margin-bottom: 4px;">Mint</div>
+                <div style="font-size: 11px; color: #6B7280;">Ice Cream</div>
+            </div>
+            
+            <!-- Midnight Magic -->
+            <div class="theme-choice" data-theme="midnight" style="padding: 16px; border: 2px solid #E5E7EB; border-radius: 10px; cursor: pointer; text-align: center; transition: all 0.2s;">
+                <div style="font-size: 32px; margin-bottom: 8px;">🌙</div>
+                <div style="font-weight: 600; font-size: 13px; margin-bottom: 4px;">Midnight</div>
+                <div style="font-size: 11px; color: #6B7280;">Magic</div>
+            </div>
+            
+            <!-- Rainbow Party -->
+            <div class="theme-choice" data-theme="rainbow" style="padding: 16px; border: 2px solid #E5E7EB; border-radius: 10px; cursor: pointer; text-align: center; transition: all 0.2s;">
+                <div style="font-size: 32px; margin-bottom: 8px;">🌈</div>
+                <div style="font-weight: 600; font-size: 13px; margin-bottom: 4px;">Rainbow</div>
+                <div style="font-size: 11px; color: #6B7280;">Party</div>
+            </div>
+            
+            <!-- Retro Arcade -->
+            <div class="theme-choice" data-theme="retro" style="padding: 16px; border: 2px solid #E5E7EB; border-radius: 10px; cursor: pointer; text-align: center; transition: all 0.2s;">
+                <div style="font-size: 32px; margin-bottom: 8px;">👾</div>
+                <div style="font-weight: 600; font-size: 13px; margin-bottom: 4px;">Retro</div>
+                <div style="font-size: 11px; color: #6B7280;">Arcade</div>
+            </div>
+            
+            <!-- Desert Gold -->
+            <div class="theme-choice" data-theme="desert" style="padding: 16px; border: 2px solid #E5E7EB; border-radius: 10px; cursor: pointer; text-align: center; transition: all 0.2s;">
+                <div style="font-size: 32px; margin-bottom: 8px;">🏜️</div>
+                <div style="font-weight: 600; font-size: 13px; margin-bottom: 4px;">Desert</div>
+                <div style="font-size: 11px; color: #6B7280;">Gold</div>
+            </div>
+            
+            <!-- Arctic Freeze -->
+            <div class="theme-choice" data-theme="arctic" style="padding: 16px; border: 2px solid #E5E7EB; border-radius: 10px; cursor: pointer; text-align: center; transition: all 0.2s;">
+                <div style="font-size: 32px; margin-bottom: 8px;">❄️</div>
+                <div style="font-weight: 600; font-size: 13px; margin-bottom: 4px;">Arctic</div>
+                <div style="font-size: 11px; color: #6B7280;">Freeze</div>
+            </div>
+            
+        </div>
+        
+        <!-- Action Button -->
+        <div style="display: flex; gap: 10px;">
+            <button class="btn" id="close-theme-modal-btn" style="flex: 1; background: #6B7280; color: white;">Close</button>
+        </div>
+        
+        <p style="font-size: 11px; color: #6B7280; margin-top: 12px; text-align: center;">💡 Themes apply instantly! Don't forget to click "Save Changes" below.</p>
+    </div>
+</div>
 
     <script>
         // Auto-versioning system
