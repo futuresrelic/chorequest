@@ -82,12 +82,23 @@ function showAppScreen() {
     document.getElementById('app-screen').classList.remove('hidden');
     
     // Wait for DOM to be ready
-    setTimeout(() => {
+setTimeout(async () => {
+        // Load settings from server first
+        // await loadSettingsFromServer();
+        
         updateHeader();
         loadFeed();
         loadSettings();
         attachSettingsListeners();
         
+        // Apply theme after everything loads
+        const settings = JSON.parse(localStorage.getItem('kid_settings') || '{}');
+        if (settings.themeName && themes[settings.themeName]) {
+            console.log('🎨 Applying theme on app start:', settings.themeName);
+            setTimeout(() => {
+                applyThemeStyling(themes[settings.themeName]);
+            }, 200);
+        }        
         // Initialize avatar selector AFTER settings are loaded
         console.log('🎯 Calling initAvatarSelector from showAppScreen...');
         initAvatarSelector();
@@ -185,6 +196,14 @@ function switchView(viewName) {
     }
     
     loadViewData(viewName);
+    // Reapply theme when switching views
+    setTimeout(() => {
+        const settings = JSON.parse(localStorage.getItem('kid_settings') || '{}');
+        if (settings.themeName && themes[settings.themeName]) {
+            console.log('🎨 Reapplying theme after view switch');
+            applyThemeStyling(themes[settings.themeName]);
+        }
+    }, 150);
 }
 
 async function loadViewData(viewName) {
@@ -773,7 +792,6 @@ function loadSettings() {
         document.documentElement.style.setProperty('--name-font', getFontFamily(settings.nameFont));
         const fontInput = document.getElementById('name-font');
         if (fontInput) fontInput.value = settings.nameFont;
-        
         // Select active font option
         const fontOption = document.querySelector(`.font-option[data-font="${settings.nameFont}"]`);
         if (fontOption) {
@@ -802,13 +820,7 @@ function loadSettings() {
         applyAvatar(settings.avatarType, settings.avatarColor);
     }
     
-    // Load saved border style (settings already declared above)
-    if (settings.borderStyle && settings.borderWidth) {
-        selectedBorderStyle = settings.borderStyle;
-        selectedBorderWidth = settings.borderWidth;
-        applyBorderToHeader();
-    }
-// Load and apply saved theme styling
+    // Load saved border style
     if (settings.borderStyle && settings.borderWidth) {
         selectedBorderStyle = settings.borderStyle;
         selectedBorderWidth = settings.borderWidth;
@@ -817,17 +829,13 @@ function loadSettings() {
     
     updatePreview();
     
-    // Apply theme styling AFTER everything loads
+    // Apply theme styling AFTER everything loads (NO setTimeout needed!)
     if (settings.themeName && themes[settings.themeName]) {
         console.log('🎨 Loading saved theme:', settings.themeName);
-        setTimeout(() => {
-            applyThemeStyling(themes[settings.themeName]);
-        }, 100);
+        applyThemeStyling(themes[settings.themeName]);
     } else if (settings.bgGradient || settings.bgColor) {
-        // Apply custom styling if no theme name but has styling
-        setTimeout(() => {
-            applyThemeStyling(settings);
-        }, 100);
+        console.log('🎨 Loading custom theme styling');
+        applyThemeStyling(settings);
     }
 }
 
@@ -892,6 +900,8 @@ function saveSettings() {
     applyBorderToHeader();
     
     updatePreview();
+    
+    // saveSettingsToServer(settings);
     
     alert('Settings saved! ✨');
 }
@@ -1827,7 +1837,7 @@ function applyTheme(themeName) {
     settings.avatarBorderColor = theme.avatarBorderColor;
     settings.borderStyle = theme.borderStyle;
     settings.borderWidth = theme.borderWidth;
-    settings.themeName = themeName; // Save theme name
+    settings.themeName = themeName; // CRITICAL LINE
     settings.bgGradient = theme.bgGradient;
     settings.bgColor = theme.bgColor;
     settings.cardBg = theme.cardBg;
@@ -1836,11 +1846,17 @@ function applyTheme(themeName) {
     settings.textColor = theme.textColor || '#1F2937';
     localStorage.setItem('kid_settings', JSON.stringify(settings));
     
+    console.log('💾 Settings saved to localStorage:', settings);
+    
     // Apply theme styling to app
     applyThemeStyling(theme);
     
     // Update preview immediately
     updatePreview();
+    
+    // Save to server
+    console.log('📤 Now saving to server...');
+    // saveSettingsToServer(settings);
     
     console.log(`✅ ${themeName.charAt(0).toUpperCase() + themeName.slice(1)} theme applied!`);
 }
@@ -2069,6 +2085,42 @@ function applyThemeStyling(theme) {
     document.head.appendChild(style);
     
     console.log('✅ Enhanced theme styling applied!');
+}
+
+// Save settings to server
+async function saveSettingsToServer(settings) {
+    console.log('💾 Saving settings to server...', settings);
+    
+    try {
+        const result = await apiCall('save_kid_settings', { settings: settings });
+        
+        if (result.ok) {
+            console.log('✅ Settings saved to server!');
+        } else {
+            console.error('❌ Failed to save settings to server:', result.error);
+        }
+    } catch (error) {
+        console.error('❌ Error saving settings:', error);
+    }
+}
+
+// Load settings from server
+async function loadSettingsFromServer() {
+    console.log('📥 Loading settings from server...');
+    
+    const result = await apiCall('load_kid_settings');
+    
+    if (result.ok && result.settings && Object.keys(result.settings).length > 0) {
+        console.log('✅ Settings loaded from server:', result.settings);
+        
+        // Merge with localStorage (server is authoritative)
+        localStorage.setItem('kid_settings', JSON.stringify(result.settings));
+        
+        return result.settings;
+    } else {
+        console.log('📭 No settings on server, using local settings');
+        return null;
+    }
 }
 
 function openBorderStyleModal() {

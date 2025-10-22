@@ -1,4 +1,10 @@
 <?php
+// TEMPORARY: Show errors
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
+error_reporting(E_ALL);
+
+require_once __DIR__ . '/../config/config.php';
 // Close database on shutdown to prevent locks
 register_shutdown_function(function() {
     global $db;
@@ -13,7 +19,6 @@ header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
 header('Cache-Control: post-check=0, pre-check=0', false);
 header('Pragma: no-cache');
 
-require_once __DIR__ . '/../config/config.php';
 
 // Start session
 startSession();
@@ -1267,50 +1272,77 @@ switch ($action) {
         jsonResponse(true, ['photo_data' => $user['avatar_photo'] ?? null]);
         break;
     
-    case 'save_kid_settings':
-        $kid_id = $_SESSION['kid_id'] ?? null;
-        $settings = $data['settings'] ?? null;
+case 'save_kid_settings':
+        // Get kid from device token
+        $device_token = $_COOKIE['kid_token'] ?? null;
         
-        if (!$kid_id || !$settings) {
-            echo json_encode(['ok' => false, 'error' => 'Missing data']);
+        if (!$device_token) {
+            echo json_encode(['ok' => false, 'error' => 'No device token']);
             break;
         }
         
-        // Store settings as JSON
+        // Find device and get kid user
+        $stmt = $db->prepare("SELECT kid_user_id FROM devices WHERE device_token = ?");
+        $stmt->execute([$device_token]);
+        $device = $stmt->fetch();
+        
+        if (!$device) {
+            echo json_encode(['ok' => false, 'error' => 'Device not found']);
+            break;
+        }
+        
+        $kid_id = $device['kid_user_id'];
+        
+        if (!isset($data['settings'])) {
+            echo json_encode(['ok' => false, 'error' => 'No settings provided']);
+            break;
+        }
+        
+        $settings = $data['settings'];
         $settings_json = json_encode($settings);
         
-        $stmt = $conn->prepare("UPDATE kids SET settings = ? WHERE id = ?");
-        $stmt->bind_param("si", $settings_json, $kid_id);
+        $stmt = $db->prepare("UPDATE users SET settings = ? WHERE id = ?");
         
-        if ($stmt->execute()) {
+        if ($stmt->execute([$settings_json, $kid_id])) {
             echo json_encode(['ok' => true]);
         } else {
-            echo json_encode(['ok' => false, 'error' => 'Failed to save settings']);
+            echo json_encode(['ok' => false, 'error' => 'Database update failed']);
         }
         break;
     
     case 'load_kid_settings':
-        $kid_id = $_SESSION['kid_id'] ?? null;
+        // Get kid from device token
+        $device_token = $_COOKIE['kid_token'] ?? null;
         
-        if (!$kid_id) {
-            echo json_encode(['ok' => false, 'error' => 'Not logged in']);
+        if (!$device_token) {
+            echo json_encode(['ok' => false, 'error' => 'No device token']);
             break;
         }
         
-        $stmt = $conn->prepare("SELECT settings FROM kids WHERE id = ?");
-        $stmt->bind_param("i", $kid_id);
-        $stmt->execute();
-        $result = $stmt->get_result();
-        $kid = $result->fetch_assoc();
+        // Find device and get kid user
+        $stmt = $db->prepare("SELECT kid_user_id FROM devices WHERE device_token = ?");
+        $stmt->execute([$device_token]);
+        $device = $stmt->fetch();
         
-        if ($kid && $kid['settings']) {
-            $settings = json_decode($kid['settings'], true);
+        if (!$device) {
+            echo json_encode(['ok' => false, 'error' => 'Device not found']);
+            break;
+        }
+        
+        $kid_id = $device['kid_user_id'];
+        
+        $stmt = $db->prepare("SELECT settings FROM users WHERE id = ?");
+        $stmt->execute([$kid_id]);
+        $user = $stmt->fetch();
+        
+        if ($user && $user['settings']) {
+            $settings = json_decode($user['settings'], true);
             echo json_encode(['ok' => true, 'settings' => $settings]);
         } else {
             echo json_encode(['ok' => true, 'settings' => []]);
         }
         break;
-        
+
     case 'load_chore_presets':
         requireAdmin();
         
@@ -1582,6 +1614,14 @@ case 'delete_user_avatar':
     }
     break;
       
+        case 'debug_session':
+        echo json_encode([
+            'ok' => true,
+            'session' => $_SESSION,
+            'user_id' => $_SESSION['user_id'] ?? 'NOT SET'
+        ]);
+        break;
+        
         default:
         jsonResponse(false, null, 'Invalid action');
 }
