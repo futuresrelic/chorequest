@@ -1367,6 +1367,176 @@ switch ($action) {
         
         jsonResponse(true, ['installed' => $installed]);
         break;
+    case 'upload_avatar_photo':
+    $kid = requireKid();
+    
+    $photoData = $input['photo_data'] ?? '';
+    
+    if (!$photoData) {
+        jsonResponse(false, null, 'Photo data required');
+    }
+    
+    // Validate base64 image
+    if (!preg_match('/^data:image\/(jpeg|jpg|png);base64,/', $photoData)) {
+        jsonResponse(false, null, 'Invalid image format');
+    }
+    
+    // Check size (limit to 500KB encoded)
+    if (strlen($photoData) > 500000) {
+        jsonResponse(false, null, 'Image too large');
+    }
+    
+    // Get kid's name for filename
+    $db = getDb();
+    $stmt = $db->prepare("SELECT kid_name FROM users WHERE id = ?");
+    $stmt->execute([$kid['kid_user_id']]);
+    $kidData = $stmt->fetch();
+    
+    if (!$kidData) {
+        jsonResponse(false, null, 'Kid not found');
+    }
+    
+    // Sanitize name for filename
+    $safeName = preg_replace('/[^a-z0-9]/i', '', strtolower($kidData['kid_name']));
+    
+    // Create avatars directory if it doesn't exist
+    $avatarDir = __DIR__ . '/../assets/avatars/users';
+    if (!file_exists($avatarDir)) {
+        mkdir($avatarDir, 0755, true);
+    }
+    
+    // Find next available slot (limit 3 per user)
+    $existingCount = 0;
+    for ($i = 1; $i <= 3; $i++) {
+        if (file_exists("$avatarDir/{$safeName}_{$i}.png")) {
+            $existingCount++;
+        }
+    }
+    
+    if ($existingCount >= 3) {
+        jsonResponse(false, null, 'Maximum 3 photos per user. Delete one first.');
+    }
+    
+    // Find next slot number
+    $slotNumber = 1;
+    for ($i = 1; $i <= 3; $i++) {
+        if (!file_exists("$avatarDir/{$safeName}_{$i}.png")) {
+            $slotNumber = $i;
+            break;
+        }
+    }
+    
+    // Decode and save image
+    $imageData = explode(',', $photoData)[1];
+    $decodedImage = base64_decode($imageData);
+    
+    $filename = "{$safeName}_{$slotNumber}.png";
+    $filepath = "$avatarDir/$filename";
+    
+    if (file_put_contents($filepath, $decodedImage)) {
+        logAudit($kid['kid_user_id'], 'avatar_uploaded', ['filename' => $filename]);
+        jsonResponse(true, [
+            'filename' => $filename,
+            'url' => "/assets/avatars/users/$filename"
+        ]);
+    } else {
+        jsonResponse(false, null, 'Failed to save image');
+    }
+    break;
+
+case 'list_avatars':
+    $kid = requireKid();
+    
+    // Get default avatars
+    $defaultDir = __DIR__ . '/../assets/avatars/default';
+    $defaultAvatars = [];
+    
+    if (file_exists($defaultDir)) {
+        $files = scandir($defaultDir);
+        foreach ($files as $file) {
+            if (preg_match('/^avatar_\d+\.(png|jpg|jpeg)$/i', $file)) {
+                $defaultAvatars[] = [
+                    'type' => 'default',
+                    'filename' => $file,
+                    'url' => "/assets/avatars/default/$file"
+                ];
+            }
+        }
+        // Sort naturally
+        usort($defaultAvatars, function($a, $b) {
+            return strnatcmp($a['filename'], $b['filename']);
+        });
+    }
+    
+    // Get user's custom avatars
+    $db = getDb();
+    $stmt = $db->prepare("SELECT kid_name FROM users WHERE id = ?");
+    $stmt->execute([$kid['kid_user_id']]);
+    $kidData = $stmt->fetch();
+    
+    $userAvatars = [];
+    if ($kidData) {
+        $safeName = preg_replace('/[^a-z0-9]/i', '', strtolower($kidData['kid_name']));
+        $userDir = __DIR__ . '/../assets/avatars/users';
+        
+        if (file_exists($userDir)) {
+            for ($i = 1; $i <= 3; $i++) {
+                $filename = "{$safeName}_{$i}.png";
+                if (file_exists("$userDir/$filename")) {
+                    $userAvatars[] = [
+                        'type' => 'user',
+                        'filename' => $filename,
+                        'url' => "/assets/avatars/users/$filename",
+                        'slot' => $i
+                    ];
+                }
+            }
+        }
+    }
+    
+    jsonResponse(true, [
+        'default' => $defaultAvatars,
+        'user' => $userAvatars,
+        'canUploadMore' => count($userAvatars) < 3
+    ]);
+    break;
+
+case 'delete_user_avatar':
+    $kid = requireKid();
+    
+    $filename = $input['filename'] ?? '';
+    
+    if (!$filename) {
+        jsonResponse(false, null, 'Filename required');
+    }
+    
+    // Security: verify it belongs to this user
+    $db = getDb();
+    $stmt = $db->prepare("SELECT kid_name FROM users WHERE id = ?");
+    $stmt->execute([$kid['kid_user_id']]);
+    $kidData = $stmt->fetch();
+    
+    if (!$kidData) {
+        jsonResponse(false, null, 'Kid not found');
+    }
+    
+    $safeName = preg_replace('/[^a-z0-9]/i', '', strtolower($kidData['kid_name']));
+    
+    // Verify filename matches user
+    if (!preg_match("/^{$safeName}_[1-3]\.png$/", $filename)) {
+        jsonResponse(false, null, 'Unauthorized');
+    }
+    
+    $filepath = __DIR__ . "/../assets/avatars/users/$filename";
+    
+    if (file_exists($filepath)) {
+        unlink($filepath);
+        logAudit($kid['kid_user_id'], 'avatar_deleted', ['filename' => $filename]);
+        jsonResponse(true, ['message' => 'Avatar deleted']);
+    } else {
+        jsonResponse(false, null, 'File not found');
+    }
+    break;
       
         default:
         jsonResponse(false, null, 'Invalid action');

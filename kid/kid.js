@@ -1090,33 +1090,37 @@ function updatePreview() {
         return;
     }
     
+    // Update name text
     previewName.textContent = currentKid.kid_name;
     
-    // Get current settings
-    const nameColor = document.getElementById('name-color');
-    const nameSize = document.getElementById('name-size');
-    const nameFont = document.getElementById('name-font');
-    const avatarBorderColor = document.getElementById('avatar-border-color');
+    // Get current settings from inputs
+    const nameColor = document.getElementById('name-color')?.value || '#1F2937';
+    const nameSize = document.getElementById('name-size')?.value || '18';
+    const nameFont = document.getElementById('name-font')?.value || 'default';
+    const avatarBorderColor = document.getElementById('avatar-border-color')?.value || '#4F46E5';
     
-    // Apply name styles
-    if (nameColor) {
-        previewName.style.color = nameColor.value;
-    }
-    if (nameSize) {
-        previewName.style.fontSize = nameSize.value + 'px';
-    }
-    if (nameFont) {
-        previewName.style.fontFamily = getFontFamily(nameFont.value);
-    }
+    console.log('Settings:', { nameColor, nameSize, nameFont, avatarBorderColor });
     
-    // Apply avatar border
-    const borderColor = avatarBorderColor ? avatarBorderColor.value : '#4F46E5';
-    previewAvatar.style.border = `3px solid ${borderColor}`;
+    // Apply name styles DIRECTLY with !important
+    previewName.style.setProperty('color', nameColor, 'important');
+    previewName.style.setProperty('font-size', nameSize + 'px', 'important');
+    previewName.style.setProperty('font-family', getFontFamily(nameFont), 'important');
+    
+    console.log('Applied to preview name:', {
+        color: nameColor,
+        size: nameSize + 'px',
+        font: getFontFamily(nameFont)
+    });
+    
+    // Apply avatar border and background
+    previewAvatar.style.border = `3px solid ${avatarBorderColor}`;
     previewAvatar.style.background = 'white';
     
     // Apply avatar type
     const activeAvatarType = document.querySelector('.avatar-type-option.active');
     const avatarType = activeAvatarType ? activeAvatarType.dataset.avatar : 'logo';
+    
+    console.log('Avatar type:', avatarType);
     
     if (avatarType === 'logo') {
         previewAvatar.innerHTML = `<img src="/assets/kid-icon-192.png" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">`;
@@ -1125,21 +1129,248 @@ function updatePreview() {
         if (photoData) {
             previewAvatar.innerHTML = `<img src="${photoData}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">`;
         } else {
-            previewAvatar.style.color = borderColor;
-            previewAvatar.style.fontSize = '24px';
+            previewAvatar.style.color = avatarBorderColor;
+            previewAvatar.style.fontSize = '20px';
             previewAvatar.style.fontWeight = 'bold';
             previewAvatar.textContent = currentKid.kid_name?.[0] || 'A';
         }
     } else {
         // Initial
-        previewAvatar.style.color = borderColor;
-        previewAvatar.style.fontSize = '24px';
+        previewAvatar.style.color = avatarBorderColor;
+        previewAvatar.style.fontSize = '20px';
         previewAvatar.style.fontWeight = 'bold';
         previewAvatar.textContent = currentKid.kid_name?.[0] || 'A';
     }
     
     console.log('=== updatePreview END ===');
 }
+
+// Avatar Selector System
+let selectedAvatarUrl = null;
+let currentFilter = 'all';
+let avatarsData = { default: [], user: [], canUploadMore: true };
+
+async function openAvatarSelector() {
+    const modal = document.getElementById('icon-selector-modal');
+    if (modal) {
+        modal.style.display = 'flex';
+        
+        // Load avatars from server
+        await loadAvatars();
+        
+        // Load saved avatar
+        const settings = JSON.parse(localStorage.getItem('kid_settings') || '{}');
+        selectedAvatarUrl = settings.avatarIcon || null;
+    }
+}
+
+async function loadAvatars() {
+    try {
+        const result = await apiCall('list_avatars');
+        if (result.ok) {
+            avatarsData = result.data;
+            renderAvatarGrid();
+            
+            // Show/hide upload button
+            const uploadSection = document.getElementById('upload-section');
+            if (uploadSection) {
+                uploadSection.style.display = avatarsData.canUploadMore ? 'block' : 'none';
+            }
+        }
+    } catch (error) {
+        console.error('Failed to load avatars:', error);
+    }
+}
+
+function renderAvatarGrid() {
+    const grid = document.getElementById('avatar-grid');
+    if (!grid) return;
+    
+    grid.innerHTML = '';
+    
+    let avatarsToShow = [];
+    
+    if (currentFilter === 'all' || currentFilter === 'default') {
+        avatarsToShow = avatarsToShow.concat(avatarsData.default);
+    }
+    
+    if (currentFilter === 'all' || currentFilter === 'user') {
+        avatarsToShow = avatarsToShow.concat(avatarsData.user);
+    }
+    
+    avatarsToShow.forEach(avatar => {
+        const div = document.createElement('div');
+        div.className = 'avatar-choice';
+        div.dataset.url = avatar.url;
+        div.dataset.type = avatar.type;
+        div.dataset.filename = avatar.filename;
+        
+        const isActive = selectedAvatarUrl === avatar.url;
+        
+        div.style.cssText = `
+            padding: 8px;
+            border: 2px solid ${isActive ? '#4F46E5' : '#E5E7EB'};
+            border-radius: 10px;
+            cursor: pointer;
+            text-align: center;
+            background: ${isActive ? '#EEF2FF' : 'white'};
+            position: relative;
+            transition: all 0.2s;
+        `;
+        
+        div.innerHTML = `
+            <div style="width: 60px; height: 60px; margin: 0 auto; display: flex; align-items: center; justify-content: center; overflow: hidden; border-radius: 50%;">
+                <img src="${avatar.url}" style="width: 100%; height: 100%; object-fit: cover;">
+            </div>
+            ${avatar.type === 'user' ? `<button class="delete-avatar-btn" data-filename="${avatar.filename}" style="position: absolute; top: 2px; right: 2px; background: #EF4444; color: white; border: none; border-radius: 50%; width: 20px; height: 20px; font-size: 12px; cursor: pointer; display: flex; align-items: center; justify-content: center;">×</button>` : ''}
+        `;
+        
+        div.addEventListener('click', (e) => {
+            if (!e.target.classList.contains('delete-avatar-btn')) {
+                document.querySelectorAll('.avatar-choice').forEach(c => {
+                    c.style.border = '2px solid #E5E7EB';
+                    c.style.background = 'white';
+                });
+                div.style.border = '2px solid #4F46E5';
+                div.style.background = '#EEF2FF';
+                selectedAvatarUrl = avatar.url;
+            }
+        });
+        
+        grid.appendChild(div);
+    });
+    
+    // Add delete button listeners
+    document.querySelectorAll('.delete-avatar-btn').forEach(btn => {
+        btn.addEventListener('click', async (e) => {
+            e.stopPropagation();
+            if (confirm('Delete this photo?')) {
+                await deleteUserAvatar(btn.dataset.filename);
+            }
+        });
+    });
+}
+
+async function deleteUserAvatar(filename) {
+    try {
+        const result = await apiCall('delete_user_avatar', { filename });
+        if (result.ok) {
+            await loadAvatars();
+        } else {
+            alert('Failed to delete: ' + result.error);
+        }
+    } catch (error) {
+        console.error('Delete failed:', error);
+    }
+}
+
+function initAvatarSelector() {
+    // Filter tabs
+    document.querySelectorAll('.filter-tab').forEach(tab => {
+        tab.addEventListener('click', () => {
+            document.querySelectorAll('.filter-tab').forEach(t => {
+                t.style.background = '#F3F4F6';
+                t.style.color = '#6B7280';
+            });
+            tab.style.background = '#EEF2FF';
+            tab.style.color = '#4F46E5';
+            
+            currentFilter = tab.id.replace('filter-', '');
+            renderAvatarGrid();
+        });
+    });
+    
+    // Upload button
+    const uploadBtn = document.getElementById('upload-avatar-btn');
+    const uploadInput = document.getElementById('avatar-upload-input');
+    
+    if (uploadBtn && uploadInput) {
+        uploadBtn.addEventListener('click', () => {
+            uploadInput.click();
+        });
+        
+        uploadInput.addEventListener('change', handleAvatarUpload);
+    }
+    
+    // Select button
+    const selectBtn = document.getElementById('select-avatar-btn');
+    if (selectBtn) {
+        selectBtn.addEventListener('click', () => {
+            if (selectedAvatarUrl) {
+                const settings = JSON.parse(localStorage.getItem('kid_settings') || '{}');
+                settings.avatarIcon = selectedAvatarUrl;
+                settings.avatarType = 'logo';
+                localStorage.setItem('kid_settings', JSON.stringify(settings));
+                
+                document.getElementById('icon-selector-modal').style.display = 'none';
+                
+                updatePreview();
+                updateHeader();
+            }
+        });
+    }
+    
+    // Cancel button
+    const cancelBtn = document.getElementById('cancel-avatar-btn');
+    if (cancelBtn) {
+        cancelBtn.addEventListener('click', () => {
+            document.getElementById('icon-selector-modal').style.display = 'none';
+        });
+    }
+    
+    // Update logo option to open modal
+    const logoOption = document.querySelector('.avatar-type-option[data-avatar="logo"]');
+    if (logoOption) {
+        logoOption.addEventListener('click', (e) => {
+            e.stopPropagation();
+            document.querySelectorAll('.avatar-type-option').forEach(o => o.classList.remove('active'));
+            logoOption.classList.add('active');
+            openAvatarSelector();
+        });
+    }
+}
+
+async function handleAvatarUpload(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    
+    if (!file.type.startsWith('image/')) {
+        alert('Please select an image file');
+        return;
+    }
+    
+    if (file.size > 500000) {
+        alert('Image too large. Max 500KB');
+        return;
+    }
+    
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+        const photoData = e.target.result;
+        
+        try {
+            const result = await apiCall('upload_avatar_photo', { photo_data: photoData });
+            if (result.ok) {
+                await loadAvatars();
+                selectedAvatarUrl = result.data.url;
+                renderAvatarGrid();
+            } else {
+                alert('Upload failed: ' + result.error);
+            }
+        } catch (error) {
+            console.error('Upload error:', error);
+            alert('Upload failed');
+        }
+    };
+    reader.readAsDataURL(file);
+}
+
+// Initialize when DOM ready
+document.addEventListener('DOMContentLoaded', () => {
+    if (document.getElementById('icon-selector-modal')) {
+        initAvatarSelector();
+    }
+});
 
 function attachSettingsListeners() {
     const nameSize = document.getElementById('name-size');

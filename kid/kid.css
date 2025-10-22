@@ -1037,3 +1037,10 @@ main {
     border-color: #4F46E5 !important;
     background: #EEF2FF !important;
 }
+
+/* Preview Name - Allow JS to Override */
+#preview-name {
+    font-weight: 600 !important;
+    margin-bottom: 2px;
+    line-height: 1.2;
+}
