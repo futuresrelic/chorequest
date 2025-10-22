@@ -1273,75 +1273,79 @@ switch ($action) {
         break;
     
 case 'save_kid_settings':
-        // Get kid from device token
-        $device_token = $_COOKIE['kid_token'] ?? null;
-        
-        if (!$device_token) {
-            echo json_encode(['ok' => false, 'error' => 'No device token']);
-            break;
-        }
-        
-        // Find device and get kid user
-        $stmt = $db->prepare("SELECT kid_user_id FROM devices WHERE device_token = ?");
-        $stmt->execute([$device_token]);
-        $device = $stmt->fetch();
-        
-        if (!$device) {
-            echo json_encode(['ok' => false, 'error' => 'Device not found']);
-            break;
-        }
-        
-        $kid_id = $device['kid_user_id'];
-        
-        if (!isset($data['settings'])) {
-            echo json_encode(['ok' => false, 'error' => 'No settings provided']);
-            break;
-        }
-        
-        $settings = $data['settings'];
-        $settings_json = json_encode($settings);
-        
-        $stmt = $db->prepare("UPDATE users SET settings = ? WHERE id = ?");
-        
-        if ($stmt->execute([$settings_json, $kid_id])) {
-            echo json_encode(['ok' => true]);
-        } else {
-            echo json_encode(['ok' => false, 'error' => 'Database update failed']);
-        }
-        break;
+    // Get kid from device token
+    $device_token = $_COOKIE['kid_token'] ?? null;
     
-    case 'load_kid_settings':
-        // Get kid from device token
-        $device_token = $_COOKIE['kid_token'] ?? null;
-        
-        if (!$device_token) {
-            echo json_encode(['ok' => false, 'error' => 'No device token']);
-            break;
-        }
-        
-        // Find device and get kid user
-        $stmt = $db->prepare("SELECT kid_user_id FROM devices WHERE device_token = ?");
-        $stmt->execute([$device_token]);
-        $device = $stmt->fetch();
-        
-        if (!$device) {
-            echo json_encode(['ok' => false, 'error' => 'Device not found']);
-            break;
-        }
-        
-        $kid_id = $device['kid_user_id'];
-        
-        $stmt = $db->prepare("SELECT settings FROM users WHERE id = ?");
-        $stmt->execute([$kid_id]);
-        $user = $stmt->fetch();
-        
-        if ($user && $user['settings']) {
-            $settings = json_decode($user['settings'], true);
-            echo json_encode(['ok' => true, 'settings' => $settings]);
-        } else {
-            echo json_encode(['ok' => true, 'settings' => []]);
-        }
+    if (!$device_token) {
+        echo json_encode(['ok' => false, 'error' => 'No device token']);
         break;
+    }
+    
+    $db = getDb();
+    
+    // Find device and get kid user
+    $stmt = $db->prepare("SELECT kid_user_id FROM devices WHERE device_token = ?");
+    $stmt->execute([$device_token]);
+    $device = $stmt->fetch();
+    
+    if (!$device) {
+        echo json_encode(['ok' => false, 'error' => 'Device not found']);
+        break;
+    }
+    
+    $kid_id = $device['kid_user_id'];
+    
+    if (!isset($input['settings'])) {
+        echo json_encode(['ok' => false, 'error' => 'No settings provided']);
+        break;
+    }
+    
+    $settings = $input['settings'];
+    $settings_json = json_encode($settings);
+    
+    $stmt = $db->prepare("UPDATE users SET settings = ? WHERE id = ?");
+    
+    if ($stmt->execute([$settings_json, $kid_id])) {
+        echo json_encode(['ok' => true]);
+    } else {
+        echo json_encode(['ok' => false, 'error' => 'Database update failed']);
+    }
+    break;
+        
+case 'load_kid_settings':
+    // Get kid from device token
+    $device_token = $_COOKIE['kid_token'] ?? null;
+    
+    if (!$device_token) {
+        echo json_encode(['ok' => false, 'error' => 'No device token']);
+        break;
+    }
+    
+    $db = getDb();
+    
+    // Find device and get kid user
+    $stmt = $db->prepare("SELECT kid_user_id FROM devices WHERE device_token = ?");
+    $stmt->execute([$device_token]);
+    $device = $stmt->fetch();
+    
+    if (!$device) {
+        echo json_encode(['ok' => false, 'error' => 'Device not found']);
+        break;
+    }
+    
+    $kid_id = $device['kid_user_id'];
+    
+    $stmt = $db->prepare("SELECT settings FROM users WHERE id = ?");
+    $stmt->execute([$kid_id]);
+    $user = $stmt->fetch();
+    
+    if ($user && $user['settings']) {
+        $settings = json_decode($user['settings'], true);
+        echo json_encode(['ok' => true, 'settings' => $settings]);
+    } else {
+        echo json_encode(['ok' => true, 'settings' => []]);
+    }
+    break;
 
     case 'load_chore_presets':
         requireAdmin();

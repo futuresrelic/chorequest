@@ -82,9 +82,9 @@ function showAppScreen() {
     document.getElementById('app-screen').classList.remove('hidden');
     
     // Wait for DOM to be ready
-setTimeout(async () => {
-        // Load settings from server first
-        // await loadSettingsFromServer();
+    setTimeout(async () => {
+        // ✅ Load settings from server first
+        await loadSettingsFromServer();
         
         updateHeader();
         loadFeed();
@@ -99,16 +99,19 @@ setTimeout(async () => {
                 applyThemeStyling(themes[settings.themeName]);
             }, 200);
         }        
+        
         // Initialize avatar selector AFTER settings are loaded
         console.log('🎯 Calling initAvatarSelector from showAppScreen...');
         initAvatarSelector();
-// Initialize border style selector
-console.log('🎨 Calling initBorderStyleSelector from showAppScreen...');
-initBorderStyleSelector();
-
-// Initialize theme selector
-console.log('🎨 Calling initThemeSelector from showAppScreen...');
-initThemeSelector();    }, 50);
+        
+        // Initialize border style selector
+        console.log('🎨 Calling initBorderStyleSelector from showAppScreen...');
+        initBorderStyleSelector();
+        
+        // Initialize theme selector
+        console.log('🎨 Calling initThemeSelector from showAppScreen...');
+        initThemeSelector();
+    }, 50);
 }
 
 // Check if already paired
@@ -829,7 +832,7 @@ function loadSettings() {
     
     updatePreview();
     
-    // Apply theme styling after everything loads
+    // ✨ NEW CODE: Apply theme styling after everything loads
     if (settings.themeName && themes[settings.themeName]) {
         console.log('🎨 Loading saved theme:', settings.themeName);
         applyThemeStyling(themes[settings.themeName]);
@@ -866,8 +869,9 @@ function saveSettings() {
         avatarBorderColor: document.getElementById('avatar-border-color').value
     };
     
-    // Don't overwrite saved avatarIcon unless it was just set
+    // Preserve existing settings we don't want to overwrite
     const existingSettings = JSON.parse(localStorage.getItem('kid_settings') || '{}');
+    
     if (existingSettings.avatarIcon) {
         settings.avatarIcon = existingSettings.avatarIcon;
     }
@@ -876,6 +880,17 @@ function saveSettings() {
     if (existingSettings.borderStyle) {
         settings.borderStyle = existingSettings.borderStyle;
         settings.borderWidth = existingSettings.borderWidth;
+    }
+    
+    // ✅ Preserve theme settings
+    if (existingSettings.themeName) {
+        settings.themeName = existingSettings.themeName;
+        settings.bgGradient = existingSettings.bgGradient;
+        settings.bgColor = existingSettings.bgColor;
+        settings.cardBg = existingSettings.cardBg;
+        settings.accentColor = existingSettings.accentColor;
+        settings.buttonColor = existingSettings.buttonColor;
+        settings.textColor = existingSettings.textColor;
     }
     
     localStorage.setItem('kid_settings', JSON.stringify(settings));
@@ -901,7 +916,13 @@ function saveSettings() {
     
     updatePreview();
     
-    // saveSettingsToServer(settings);
+    // ✅ Reapply theme styling after saving
+    if (settings.themeName && themes[settings.themeName]) {
+        applyThemeStyling(themes[settings.themeName]);
+    }
+    
+    // ✅ Save to server
+    saveSettingsToServer(settings);
     
     alert('Settings saved! ✨');
 }
@@ -1854,9 +1875,9 @@ function applyTheme(themeName) {
     // Update preview immediately
     updatePreview();
     
-    // Save to server
+    // ✅ Save to server
     console.log('📤 Now saving to server...');
-    // saveSettingsToServer(settings);
+    saveSettingsToServer(settings);
     
     console.log(`✅ ${themeName.charAt(0).toUpperCase() + themeName.slice(1)} theme applied!`);
 }
@@ -1878,7 +1899,7 @@ function applyThemeStyling(theme) {
     }
     
     // Apply to header with glass effect
-    const header = document.querySelector('.app-header');
+    const header = document.querySelector('header');
     if (header) {
         header.style.background = isDark ? 'rgba(0,0,0,0.4)' : 'rgba(255,255,255,0.85)';
         header.style.color = textColor;
