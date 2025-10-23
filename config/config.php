@@ -57,4 +57,11 @@ function startSession() {
         session_start();
     }
 }
+
+// FIXED: When assigning chores, make them available immediately
+// The recurrence interval will be applied AFTER the chore is completed
+function calculateNextDue($recurrenceType) {
+    // Return current time so chores are available to complete right away
+    return date('Y-m-d H:i:s');
+}
 ?>

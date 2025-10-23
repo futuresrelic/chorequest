@@ -122,20 +122,19 @@ function generateToken() {
     return bin2hex(random_bytes(32));
 }
 
-function calculateNextDue($frequency) {
-    $now = new DateTime();
-    switch ($frequency) {
+// Calculate next due date AFTER a chore is completed
+function calculateNextDueAfterCompletion($recurrenceType) {
+    switch ($recurrenceType) {
         case 'daily':
-            return $now->modify('+1 day')->setTime(7, 0)->format('Y-m-d H:i:s');
-            break;  // ADD THIS
+            return date('Y-m-d H:i:s', strtotime('+1 day'));
         case 'weekly':
-            return $now->modify('next Monday')->setTime(7, 0)->format('Y-m-d H:i:s');
-            break;  // ADD THIS
+            return date('Y-m-d H:i:s', strtotime('+1 week'));
+        case 'monthly':
+            return date('Y-m-d H:i:s', strtotime('+1 month'));
         case 'once':
-            return $now->modify('+1 day')->setTime(7, 0)->format('Y-m-d H:i:s');
-            break;  // ADD THIS
+            return null; // One-time chores don't repeat
         default:
-            return $now->modify('+1 day')->setTime(7, 0)->format('Y-m-d H:i:s');
+            return date('Y-m-d H:i:s', strtotime('+1 day'));
     }
 }
 
@@ -391,7 +390,7 @@ switch ($action) {
         $title = sanitize($input['title'] ?? '', 100);
         $description = sanitize($input['description'] ?? '', 2000);
         $isRecurring = intval($input['is_recurring'] ?? 1);
-        $frequency = in_array($input['frequency'] ?? '', ['daily', 'weekly', 'once']) ? $input['frequency'] : 'daily';
+        $frequency = in_array($input['recurrence_type'] ?? '', ['daily', 'weekly', 'once']) ? $input['recurrence_type'] : 'daily';
         $defaultPoints = intval($input['default_points'] ?? 10);
         $requiresApproval = intval($input['requires_approval'] ?? 1);
         
@@ -443,37 +442,38 @@ switch ($action) {
         jsonResponse(true, ['message' => 'Chore deleted']);
         break;
     
-    case 'assign_chore_to_kid':
-        requireAdmin();
-        
-        $kidId = intval($input['kid_id'] ?? 0);
-        $choreId = intval($input['chore_id'] ?? 0);
-        
-        if (!$kidId || !$choreId) {
-            jsonResponse(false, null, 'Kid ID and Chore ID required');
-        }
-        
-        $db = getDb();
-        $stmt = $db->prepare("SELECT frequency FROM chores WHERE id = ?");
-        $stmt->execute([$choreId]);
-        $chore = $stmt->fetch();
-        
-        if (!$chore) {
-            jsonResponse(false, null, 'Chore not found');
-        }
-        
-        $nextDue = calculateNextDue($chore['frequency']);
-        
-        $stmt = $db->prepare("
-            INSERT OR IGNORE INTO kid_chores (kid_user_id, chore_id, next_due_at) 
-            VALUES (?, ?, ?)
-        ");
-        $stmt->execute([$kidId, $choreId, $nextDue]);
-        
-        logAudit($_SESSION['admin_id'], 'assign_chore', ['kid_id' => $kidId, 'chore_id' => $choreId]);
-        jsonResponse(true, ['message' => 'Chore assigned']);
-        break;
+case 'assign_chore_to_kid':
+    requireAdmin();
     
+    $kidId = intval($input['kid_id'] ?? 0);
+    $choreId = intval($input['chore_id'] ?? 0);
+    
+    if (!$kidId || !$choreId) {
+        jsonResponse(false, null, 'Kid ID and Chore ID required');
+    }
+    
+    $db = getDb();
+    
+    $stmt = $db->prepare("SELECT recurrence_type FROM chores WHERE id = ?");
+    $stmt->execute([$choreId]);
+    $chore = $stmt->fetch();
+    
+    if (!$chore) {
+        jsonResponse(false, null, 'Chore not found');
+    }
+    
+    $nextDue = calculateNextDue($chore['recurrence_type']);
+    
+    $stmt = $db->prepare("
+        INSERT OR IGNORE INTO kid_chores (kid_user_id, chore_id, next_due_at) 
+        VALUES (?, ?, ?)
+    ");
+    $stmt->execute([$kidId, $choreId, $nextDue]);
+    
+    logAudit($_SESSION['admin_id'], 'assign_chore', ['kid_id' => $kidId, 'chore_id' => $choreId]);
+    jsonResponse(true, ['message' => 'Chore assigned']);
+    break;
+        
     case 'unassign_chore':
         requireAdmin();
         
@@ -492,38 +492,39 @@ switch ($action) {
         jsonResponse(true, ['message' => 'Chore unassigned']);
         break;
     
-    case 'list_kid_chores':
-        $kidId = intval($input['kid_id'] ?? 0);
-        
-        if (isset($_SESSION['admin_id'])) {
-            // Admin viewing
-        } else {
-            $kid = requireKid();
-            $kidId = $kid['kid_user_id'];
-        }
-        
-        if (!$kidId) {
-            jsonResponse(false, null, 'Kid ID required');
-        }
-        
-        $db = getDb();
-        $stmt = $db->prepare("
-            SELECT kc.*, c.title, c.description, c.is_recurring, c.frequency, 
-                   c.default_points, c.requires_approval,
-                   CASE 
-                       WHEN datetime(kc.next_due_at) <= datetime('now') THEN 1 
-                       ELSE 0 
-                   END as is_due
-            FROM kid_chores kc
-            JOIN chores c ON kc.chore_id = c.id
-            WHERE kc.kid_user_id = ?
-            ORDER BY is_due DESC, kc.next_due_at
-        ");
-        $stmt->execute([$kidId]);
-        
-        jsonResponse(true, $stmt->fetchAll());
-        break;
+case 'list_kid_chores':
+    $kidId = intval($input['kid_id'] ?? 0);
     
+    if (isset($_SESSION['admin_id'])) {
+        // Admin viewing
+    } else {
+        $kid = requireKid();
+        $kidId = $kid['kid_user_id'];
+    }
+    
+    if (!$kidId) {
+        jsonResponse(false, null, 'Kid ID required');
+    }
+    
+    $db = getDb();
+    
+    $stmt = $db->prepare("
+        SELECT kc.*, c.title, c.description, c.recurrence_type, 
+               c.default_points, c.requires_approval,
+               CASE 
+                   WHEN datetime(kc.next_due_at) <= datetime('now') THEN 1 
+                   ELSE 0 
+               END as is_due
+        FROM kid_chores kc
+        JOIN chores c ON kc.chore_id = c.id
+        WHERE kc.kid_user_id = ?
+        ORDER BY is_due DESC, kc.next_due_at
+    ");
+    $stmt->execute([$kidId]);
+    
+    jsonResponse(true, $stmt->fetchAll());
+    break;
+        
     case 'submit_chore_completion':
         $kid = requireKid();
         
@@ -536,7 +537,7 @@ switch ($action) {
         
         $db = getDb();
         $stmt = $db->prepare("
-            SELECT kc.*, c.requires_approval, c.default_points, c.is_recurring, c.frequency
+            SELECT kc.*, c.requires_approval, c.default_points, c.is_recurring, c.recurrence_type
             FROM kid_chores kc
             JOIN chores c ON kc.chore_id = c.id
             WHERE kc.kid_user_id = ? AND kc.chore_id = ?
@@ -568,23 +569,27 @@ switch ($action) {
         $stmt->execute([$kid['kid_user_id'], $choreId, $status, $note, $pointsAwarded, $reviewedAt]);
         $submissionId = $db->lastInsertId();
         
-        if ($status === 'approved') {
-            $stmt = $db->prepare("UPDATE users SET total_points = total_points + ? WHERE id = ?");
-            $stmt->execute([$pointsAwarded, $kid['kid_user_id']]);
-            
-            if ($kidChore['is_recurring']) {
-                $nextDue = calculateNextDue($kidChore['frequency']);
-                $newStreak = $kidChore['streak_count'] + 1;
-                
-                $stmt = $db->prepare("
-                    UPDATE kid_chores 
-                    SET streak_count = ?, last_completed_at = datetime('now'), next_due_at = ?
-                    WHERE kid_user_id = ? AND chore_id = ?
-                ");
-                $stmt->execute([$newStreak, $nextDue, $kid['kid_user_id'], $choreId]);
-            }
-        }
+if ($status === 'approved') {
+    $stmt = $db->prepare("UPDATE users SET total_points = total_points + ? WHERE id = ?");
+    $stmt->execute([$pointsAwarded, $kid['kid_user_id']]);
+    
+    if ($kidChore['recurrence_type'] !== 'once') {
+        // Use the NEW function for post-completion scheduling
+        $nextDue = calculateNextDueAfterCompletion($kidChore['recurrence_type']); // ← CHANGED
+        $newStreak = $kidChore['streak_count'] + 1;
         
+        $stmt = $db->prepare("
+            UPDATE kid_chores 
+            SET streak_count = ?, last_completed_at = datetime('now'), next_due_at = ?
+            WHERE kid_user_id = ? AND chore_id = ?
+        ");
+        $stmt->execute([$newStreak, $nextDue, $kid['kid_user_id'], $choreId]);
+    } else {
+        // Optional: Remove one-time chores after completion
+        $stmt = $db->prepare("DELETE FROM kid_chores WHERE kid_user_id = ? AND chore_id = ?");
+        $stmt->execute([$kid['kid_user_id'], $choreId]);
+    }
+}        
         logAudit($kid['kid_user_id'], 'submit_chore', ['chore_id' => $choreId, 'submission_id' => $submissionId]);
         jsonResponse(true, [
             'submission_id' => $submissionId,
@@ -630,7 +635,7 @@ switch ($action) {
         
         $db = getDb();
         $stmt = $db->prepare("
-            SELECT s.*, c.default_points, c.is_recurring, c.frequency, kc.streak_count
+            SELECT s.*, c.default_points, c.is_recurring, c.recurrence_type, kc.streak_count
             FROM submissions s
             JOIN chores c ON s.chore_id = c.id
             LEFT JOIN kid_chores kc ON s.kid_user_id = kc.kid_user_id AND s.chore_id = kc.chore_id
@@ -658,7 +663,7 @@ switch ($action) {
             $stmt->execute([$pointsAwarded, $submission['kid_user_id']]);
             
             if ($submission['is_recurring']) {
-                $nextDue = calculateNextDue($submission['frequency']);
+                $nextDue = calculateNextDue($submission['recurrence_type']);
                 $newStreak = $submission['streak_count'] + 1;
                 
                 $stmt = $db->prepare("
