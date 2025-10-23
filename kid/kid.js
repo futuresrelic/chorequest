@@ -363,26 +363,36 @@ function renderChores(chores, submissions = []) {
     });
 }
 
-async function submitChore(choreId, choreTitle) {
-    const note = prompt(`Submit "${choreTitle}".\n\nAdd a note (optional):`);
-    if (note === null) return; // User clicked cancel
+async function submitChore(choreId) {
+    if (window.submitting) return;
+    window.submitting = true;
     
-    const result = await apiCall('submit_chore_completion', {
-        chore_id: choreId,
-        note: note.trim()
-    });
-    
-    if (result.ok) {
-        if (result.data.status === 'approved') {
-            alert(`Great job! You earned ${result.data.points_awarded} points!`);
-            triggerConfetti();
-        } else {
-            alert('Submitted for review!');
+    try {
+        const note = prompt(`Submit chore.\n\nAdd a note (optional):`);
+        if (note === null) {
+            window.submitting = false;
+            return;
         }
-        await loadFeed();
-        await loadChores();
-    } else {
-        alert('Error: ' + result.error);
+        
+        const result = await apiCall('submit_chore_completion', {
+            chore_id: choreId,
+            note: note.trim()
+        });
+        
+        if (result.ok) {
+            if (result.data.status === 'approved') {
+                alert(`Great job! You earned ${result.data.points_awarded} points!`);
+                triggerConfetti();
+            } else {
+                alert('Submitted for review!');
+            }
+            await loadFeed();
+            await loadChores();
+        } else {
+            alert('Error: ' + result.error);
+        }
+    } finally {
+        window.submitting = false;
     }
 }
 
