@@ -1,31 +1,35 @@
 <?php
-// TEMPORARY: Show errors
-ini_set('display_errors', 1);
-ini_set('display_startup_errors', 1);
 error_reporting(E_ALL);
-error_log("API called: action=" . ($input['action'] ?? 'none'));
+ini_set('display_errors', 1);
+ini_set('log_errors', 1);
 
-require_once __DIR__ . '/../config/config.php';
-// Close database on shutdown to prevent locks
-register_shutdown_function(function() {
-    global $db;
-    $db = null;
-});
-error_log("LIVE api.php loaded at " . date('c'));
+try {
+    require_once __DIR__ . '/../config/config.php';
+} catch (Exception $e) {
+    die(json_encode(['ok' => false, 'error' => 'Config error: ' . $e->getMessage()]));
+}
 
 header('Content-Type: application/json');
-header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
-header('Cache-Control: post-check=0, pre-check=0', false);
-header('Pragma: no-cache');
+header('Access-Control-Allow-Origin: *');
+header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
+header('Access-Control-Allow-Headers: Content-Type');
 
+if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
+    http_response_code(200);
+    exit;
+}
+
+error_log("LIVE api.php loaded at " . date('c'));
+
+// Get request data FIRST (before trying to use it)
+$input = json_decode(file_get_contents('php://input'), true);
+$action = $input['action'] ?? $_GET['action'] ?? '';
+
+// NOW we can log it
+error_log("API called: action=" . $action);
 
 // Start session
 startSession();
-error_log("API action: " . $action);
-
-// Get request data
-$input = json_decode(file_get_contents('php://input'), true);
-$action = $input['action'] ?? $_GET['action'] ?? '';
 
 // Helper functions
 function jsonResponse($ok, $data = null, $error = null) {
@@ -139,43 +143,44 @@ function calculateNextDueAfterCompletion($recurrenceType) {
 }
 
 // Route actions
-switch ($action) {
-    
-    case 'admin_login':
-        file_put_contents('/tmp/login-debug.txt', print_r([
-            'input' => $input,
-            'email' => $input['email'] ?? 'none',
-            'password_length' => strlen($input['password'] ?? '')
-        ], true));
-    
-        // checkRateLimit('admin_login', 25, 5);
+try {
+    switch ($action) {
         
-        $email = sanitize($input['email'] ?? '', 100);
-        $password = $input['password'] ?? '';
+        case 'admin_login':
+            file_put_contents('/tmp/login-debug.txt', print_r([
+                'input' => $input,
+                'email' => $input['email'] ?? 'none',
+                'password_length' => strlen($input['password'] ?? '')
+            ], true));
         
-        if (!$email || !$password) {
-            jsonResponse(false, null, 'Email and password required');
-        }
-        
-        $db = getDb();
-        $stmt = $db->prepare("SELECT * FROM users WHERE email = ? AND role = 'admin'");
-        $stmt->execute([$email]);
-        $admin = $stmt->fetch();
-        
-        if (!$admin || !password_verify($password, $admin['password_hash'])) {
-            jsonResponse(false, null, 'Invalid credentials');
-        }
-        
-        $_SESSION['admin_id'] = $admin['id'];
-        $_SESSION['admin_email'] = $admin['email'];
-        
-        logAudit($admin['id'], 'admin_login', ['email' => $email]);
-        
-        jsonResponse(true, [
-            'id' => $admin['id'],
-            'email' => $admin['email']
-        ]);
-        break;
+            // checkRateLimit('admin_login', 25, 5);
+            
+            $email = sanitize($input['email'] ?? '', 100);
+            $password = $input['password'] ?? '';
+            
+            if (!$email || !$password) {
+                jsonResponse(false, null, 'Email and password required');
+            }
+            
+            $db = getDb();
+            $stmt = $db->prepare("SELECT * FROM users WHERE email = ? AND role = 'admin'");
+            $stmt->execute([$email]);
+            $admin = $stmt->fetch();
+            
+            if (!$admin || !password_verify($password, $admin['password_hash'])) {
+                jsonResponse(false, null, 'Invalid credentials');
+            }
+            
+            $_SESSION['admin_id'] = $admin['id'];
+            $_SESSION['admin_email'] = $admin['email'];
+            
+            logAudit($admin['id'], 'admin_login', ['email' => $email]);
+            
+            jsonResponse(true, [
+                'id' => $admin['id'],
+                'email' => $admin['email']
+            ]);
+            break;
     
     case 'admin_logout':
         requireAdmin();
@@ -390,32 +395,31 @@ switch ($action) {
         ]);
         break;
     
-    case 'create_chore':
-        requireAdmin();
-        
-        $title = sanitize($input['title'] ?? '', 100);
-        $description = sanitize($input['description'] ?? '', 2000);
-        $isRecurring = intval($input['is_recurring'] ?? 1);
-        $frequency = in_array($input['recurrence_type'] ?? '', ['daily', 'weekly', 'once']) ? $input['recurrence_type'] : 'daily';
-        $defaultPoints = intval($input['default_points'] ?? 10);
-        $requiresApproval = intval($input['requires_approval'] ?? 1);
-        
-        if (!$title) {
-            jsonResponse(false, null, 'Title is required');
-        }
-        
-        $db = getDb();
-        $stmt = $db->prepare("
-            INSERT INTO chores (title, description, is_recurring, frequency, default_points, requires_approval, created_by) 
-            VALUES (?, ?, ?, ?, ?, ?, ?)
-        ");
-        $stmt->execute([$title, $description, $isRecurring, $frequency, $defaultPoints, $requiresApproval, $_SESSION['admin_id']]);
-        $choreId = $db->lastInsertId();
-        
-        logAudit($_SESSION['admin_id'], 'create_chore', ['chore_id' => $choreId, 'title' => $title]);
-        jsonResponse(true, ['id' => $choreId]);
-        break;
+case 'create_chore':
+    requireAdmin();
     
+    $title = sanitize($input['title'] ?? '', 100);
+    $description = sanitize($input['description'] ?? '', 2000);
+    $recurrenceType = in_array($input['recurrence_type'] ?? '', ['daily', 'weekly', 'monthly', 'once']) ? $input['recurrence_type'] : 'daily';
+    $defaultPoints = intval($input['default_points'] ?? 10);
+    $requiresApproval = intval($input['requires_approval'] ?? 1);
+    
+    if (!$title) {
+        jsonResponse(false, null, 'Title is required');
+    }
+    
+    $db = getDb();
+    $stmt = $db->prepare("
+        INSERT INTO chores (title, description, recurrence_type, default_points, requires_approval, created_by)
+        VALUES (?, ?, ?, ?, ?, ?)
+    ");
+    $stmt->execute([$title, $description, $recurrenceType, $defaultPoints, $requiresApproval, $_SESSION['admin_id']]);
+    $choreId = $db->lastInsertId();
+    
+    logAudit($_SESSION['admin_id'], 'create_chore', ['chore_id' => $choreId, 'title' => $title]);
+    jsonResponse(true, ['id' => $choreId]);
+    break;
+        
     case 'list_chores':
         requireAdmin();
         
@@ -571,31 +575,35 @@ case 'list_kid_chores':
             INSERT INTO submissions (kid_user_id, chore_id, status, note, points_awarded, reviewed_at) 
             VALUES (?, ?, ?, ?, ?, ?)
         ");
-        $reviewedAt = $status === 'approved' ? date('Y-m-d H:i:s') : null;
+$reviewedAt = $status === 'approved' ? date('Y-m-d H:i:s') : null;
         $stmt->execute([$kid['kid_user_id'], $choreId, $status, $note, $pointsAwarded, $reviewedAt]);
         $submissionId = $db->lastInsertId();
         
-if ($status === 'approved') {
-    $stmt = $db->prepare("UPDATE users SET total_points = total_points + ? WHERE id = ?");
-    $stmt->execute([$pointsAwarded, $kid['kid_user_id']]);
-    
-    if ($kidChore['recurrence_type'] !== 'once') {
-        // Use the NEW function for post-completion scheduling
-        $nextDue = calculateNextDueAfterCompletion($kidChore['recurrence_type']); // ← CHANGED
-        $newStreak = $kidChore['streak_count'] + 1;
+        // ALWAYS update next_due_at to prevent re-submission, regardless of approval requirement
+        if ($kidChore['recurrence_type'] !== 'once') {
+            $nextDue = calculateNextDueAfterCompletion($kidChore['recurrence_type']);
+            $newStreak = $status === 'approved' ? $kidChore['streak_count'] + 1 : $kidChore['streak_count'];
+            
+$stmt = $db->prepare("
+    UPDATE kid_chores
+    SET streak_count = ?, last_completed_at = datetime('now'), next_due_at = ?
+    WHERE kid_user_id = ? AND chore_id = ?
+");
+$stmt->execute([$newStreak, $nextDue, $kid['kid_user_id'], $choreId]);
+
+// DEBUG: Log what we just set
+error_log("SUBMIT DEBUG - ChoreID: $choreId, Set next_due to: $nextDue, Current time: " . date('Y-m-d H:i:s'));            $stmt->execute([$newStreak, $nextDue, $kid['kid_user_id'], $choreId]);
+        } else {
+            // One-time chores: remove after submission (even if pending approval)
+            $stmt = $db->prepare("DELETE FROM kid_chores WHERE kid_user_id = ? AND chore_id = ?");
+            $stmt->execute([$kid['kid_user_id'], $choreId]);
+        }
         
-        $stmt = $db->prepare("
-            UPDATE kid_chores 
-            SET streak_count = ?, last_completed_at = datetime('now'), next_due_at = ?
-            WHERE kid_user_id = ? AND chore_id = ?
-        ");
-        $stmt->execute([$newStreak, $nextDue, $kid['kid_user_id'], $choreId]);
-    } else {
-        // Optional: Remove one-time chores after completion
-        $stmt = $db->prepare("DELETE FROM kid_chores WHERE kid_user_id = ? AND chore_id = ?");
-        $stmt->execute([$kid['kid_user_id'], $choreId]);
-    }
-}        
+        // Award points if auto-approved
+        if ($status === 'approved') {
+            $stmt = $db->prepare("UPDATE users SET total_points = total_points + ? WHERE id = ?");
+            $stmt->execute([$pointsAwarded, $kid['kid_user_id']]);
+        }        
         logAudit($kid['kid_user_id'], 'submit_chore', ['chore_id' => $choreId, 'submission_id' => $submissionId]);
         jsonResponse(true, [
             'submission_id' => $submissionId,
@@ -604,49 +612,50 @@ if ($status === 'approved') {
         ]);
         break;
 
-    case 'approve_submission':
+case 'approve_submission':
     requireAdmin();
     error_log("Approve submission called: " . print_r($input, true));
     
-    $submissionId = intval($input['submission_id'] ?? 0);
-    if (!$submissionId) {
-        jsonResponse(false, null, 'Submission ID required');
-    }
-    
-    $db = getDb();
-    $stmt = $db->prepare("
-        SELECT s.*, c.recurrence_type, c.default_points
-        FROM submissions s
-        JOIN chores c ON s.chore_id = c.id
-        WHERE s.id = ?
-    ");
-    $stmt->execute([$submissionId]);
-    $submission = $stmt->fetch();
-    
-    if (!$submission) {
-        jsonResponse(false, null, 'Submission not found');
-    }
-    
-    $points = $submission['points_awarded'] ?: $submission['default_points'];
-    
-    $stmt = $db->prepare("UPDATE submissions SET status = 'approved', points_awarded = ?, reviewed_at = datetime('now'), reviewer_id = ? WHERE id = ?");
-    $stmt->execute([$points, $_SESSION['admin_id'], $submissionId]);
-    
-    $stmt = $db->prepare("UPDATE users SET total_points = total_points + ? WHERE id = ?");
-    $stmt->execute([$points, $submission['kid_user_id']]);
-    
-    if ($submission['recurrence_type'] !== 'once') {
-        $nextDue = calculateNextDueAfterCompletion($submission['recurrence_type']);
-        $stmt = $db->prepare("UPDATE kid_chores SET next_due_at = ?, streak_count = streak_count + 1, last_completed_at = datetime('now') WHERE kid_user_id = ? AND chore_id = ?");
-        $stmt->execute([$nextDue, $submission['kid_user_id'], $submission['chore_id']]);
-    } else {
-        $stmt = $db->prepare("DELETE FROM kid_chores WHERE kid_user_id = ? AND chore_id = ?");
-        $stmt->execute([$submission['kid_user_id'], $submission['chore_id']]);
-    }
-    
-    logAudit($_SESSION['admin_id'], 'approve_submission', ['submission_id' => $submissionId]);
-    jsonResponse(true, ['message' => 'Approved']);
-        } catch (Exception $e) {
+    try {
+        $submissionId = intval($input['submission_id'] ?? 0);
+        if (!$submissionId) {
+            jsonResponse(false, null, 'Submission ID required');
+        }
+        
+        $db = getDb();
+        $stmt = $db->prepare("
+            SELECT s.*, c.recurrence_type, c.default_points
+            FROM submissions s
+            JOIN chores c ON s.chore_id = c.id
+            WHERE s.id = ?
+        ");
+        $stmt->execute([$submissionId]);
+        $submission = $stmt->fetch();
+        
+        if (!$submission) {
+            jsonResponse(false, null, 'Submission not found');
+        }
+        
+        $points = $submission['points_awarded'] ?: $submission['default_points'];
+        
+        $stmt = $db->prepare("UPDATE submissions SET status = 'approved', points_awarded = ?, reviewed_at = datetime('now'), reviewer_id = ? WHERE id = ?");
+        $stmt->execute([$points, $_SESSION['admin_id'], $submissionId]);
+        
+        $stmt = $db->prepare("UPDATE users SET total_points = total_points + ? WHERE id = ?");
+        $stmt->execute([$points, $submission['kid_user_id']]);
+        
+        if ($submission['recurrence_type'] !== 'once') {
+            $nextDue = calculateNextDueAfterCompletion($submission['recurrence_type']);
+            $stmt = $db->prepare("UPDATE kid_chores SET next_due_at = ?, streak_count = streak_count + 1, last_completed_at = datetime('now') WHERE kid_user_id = ? AND chore_id = ?");
+            $stmt->execute([$nextDue, $submission['kid_user_id'], $submission['chore_id']]);
+        } else {
+            $stmt = $db->prepare("DELETE FROM kid_chores WHERE kid_user_id = ? AND chore_id = ?");
+            $stmt->execute([$submission['kid_user_id'], $submission['chore_id']]);
+        }
+        
+        logAudit($_SESSION['admin_id'], 'approve_submission', ['submission_id' => $submissionId]);
+        jsonResponse(true, ['message' => 'Approved']);
+    } catch (Exception $e) {
         error_log("Approve error: " . $e->getMessage());
         jsonResponse(false, null, $e->getMessage());
     }
@@ -689,7 +698,7 @@ if ($status === 'approved') {
         
         $db = getDb();
         $stmt = $db->prepare("
-            SELECT s.*, c.default_points, c.is_recurring, c.recurrence_type, kc.streak_count
+            SELECT s.*, c.default_points, c.recurrence_type, kc.streak_count
             FROM submissions s
             JOIN chores c ON s.chore_id = c.id
             LEFT JOIN kid_chores kc ON s.kid_user_id = kc.kid_user_id AND s.chore_id = kc.chore_id
@@ -716,8 +725,8 @@ if ($status === 'approved') {
             $stmt = $db->prepare("UPDATE users SET total_points = total_points + ? WHERE id = ?");
             $stmt->execute([$pointsAwarded, $submission['kid_user_id']]);
             
-            if ($submission['is_recurring']) {
-                $nextDue = calculateNextDue($submission['recurrence_type']);
+            if ($submission['recurrence_type'] !== 'once') {
+                $nextDue = calculateNextDueAfterCompletion($submission['recurrence_type']);
                 $newStreak = $submission['streak_count'] + 1;
                 
                 $stmt = $db->prepare("
@@ -1121,7 +1130,7 @@ if ($status === 'approved') {
         jsonResponse(true, ['message' => 'Redemption reviewed']);
         break;
     
-    case 'kid_feed':
+case 'kid_feed':
     $kid = requireKid();
     
     $db = getDb();
@@ -1140,9 +1149,9 @@ if ($status === 'approved') {
         SELECT s.*, c.title as chore_title
         FROM submissions s
         JOIN chores c ON s.chore_id = c.id
-        WHERE s.kid_user_id = ?
+        WHERE s.kid_user_id = ? 
+          AND (s.status = 'pending' OR DATE(s.submitted_at) = DATE('now'))
         ORDER BY s.submitted_at DESC
-        LIMIT 10
     ");
     $stmt->execute([$kid['kid_user_id']]);
     $submissions = $stmt->fetchAll();
@@ -1176,10 +1185,10 @@ if ($status === 'approved') {
         'chores' => $chores,
         'submissions' => $submissions,
         'quests' => $quests,
-        'redemptions' => $redemptions  // NEW LINE
+        'redemptions' => $redemptions
     ]);
     break;
-    
+        
     case 'stats_overview':
         requireAdmin();
         
@@ -1685,7 +1694,14 @@ case 'delete_user_avatar':
         ]);
         break;
         
-        default:
-        jsonResponse(false, null, 'Invalid action');
+default:
+            jsonResponse(false, null, 'Invalid action');
+    }
+} catch (Exception $e) {
+    error_log("API ERROR: " . $e->getMessage() . " in " . $e->getFile() . ":" . $e->getLine());
+    jsonResponse(false, null, 'Server error: ' . $e->getMessage());
+} catch (Error $e) {
+    error_log("API FATAL: " . $e->getMessage() . " in " . $e->getFile() . ":" . $e->getLine());
+    jsonResponse(false, null, 'Fatal error: ' . $e->getMessage());
 }
 ?>
