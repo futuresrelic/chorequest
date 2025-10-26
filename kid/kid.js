@@ -1889,6 +1889,26 @@ function applyTheme(themeName) {
     console.log('📤 Now saving to server...');
     saveSettingsToServer(settings);
     
+    // ✨ Check for theme animations (ALL animations, no duplicates!)
+    clearThemeAnimation();
+    
+    if (theme.stars) {
+        console.log('⭐ Creating starry background...');
+        createStarryBackground();
+    } else if (theme.bubbles) {
+        console.log('🫧 Creating bubbles...');
+        createBubbles();
+    } else if (theme.snowflakes) {
+        console.log('❄️ Creating snowflakes...');
+        createSnowflakes();
+    } else if (theme.embers) {
+        console.log('🔥 Creating embers...');
+        createEmbers();
+    } else if (theme.sparkles) {
+        console.log('✨ Creating sparkles...');
+        createSparkles();
+    }
+    
     console.log(`✅ ${themeName.charAt(0).toUpperCase() + themeName.slice(1)} theme applied!`);
 }
 
@@ -2079,6 +2099,17 @@ function applyThemeStyling(theme) {
         themeBtn.style.transition = 'all 0.3s ease';
     }
     
+    // Apply text color to header and non-card areas only
+    if (theme.textColor) {
+    // Target specific elements that need light text
+        document.querySelectorAll('.settings-section label, #view-settings h3, .view > h2, .nav-item').forEach(el => {
+            el.style.color = theme.textColor;
+        });
+    
+    // Set default text color for body (but cards will override)
+        document.body.style.color = theme.textColor;
+    }
+
     // Add hover effects to interactive elements
     const style = document.createElement('style');
     style.textContent = `
@@ -2579,3 +2610,866 @@ function attachSettingsListeners() {
 
 // Initialize
 checkPairing();
+
+// ============================================
+// 🎨 CHOREQUEST ENHANCEMENTS v1.0
+// ============================================
+// Paste this entire file at the END of kid.js
+// (after the last line, before the closing tags)
+
+// ============================================
+// 🎵 SOUND SYSTEM
+// ============================================
+
+// ============================================
+// 🎵 SOUND SYSTEM - BROWSER BEEPS (No External Files!)
+// ============================================
+// COPY THIS ENTIRE SECTION and REPLACE your existing SOUNDS section
+
+// Generate simple beep sounds using Web Audio API - no external files needed!
+function playSound(soundName) {
+    const soundsEnabled = localStorage.getItem('sounds_enabled') !== 'false';
+    if (!soundsEnabled) return;
+    
+    try {
+        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        const oscillator = audioContext.createOscillator();
+        const gainNode = audioContext.createGain();
+        
+        oscillator.connect(gainNode);
+        gainNode.connect(audioContext.destination);
+        
+        // Different frequencies for different sounds
+        const soundConfig = {
+            complete: { freq: 880, duration: 0.15 },   // A5 - high happy note
+            points: { freq: 660, duration: 0.12 },     // E5 - quick ding
+            levelUp: { freq: 1046, duration: 0.3 },    // C6 - celebration
+            reward: { freq: 523, duration: 0.25 },     // C5 - reward chime
+            swoosh: { freq: 200, duration: 0.08 },     // Low whoosh
+            click: { freq: 800, duration: 0.05 }       // Quick click
+        };
+        
+        const config = soundConfig[soundName] || { freq: 440, duration: 0.1 };
+        
+        oscillator.frequency.value = config.freq;
+        oscillator.type = soundName === 'swoosh' ? 'triangle' : 'sine';
+        
+        // Volume envelope for natural sound
+        gainNode.gain.value = 0.15;
+        gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + config.duration);
+        
+        oscillator.start(audioContext.currentTime);
+        oscillator.stop(audioContext.currentTime + config.duration);
+        
+        console.log(`🔊 Playing sound: ${soundName}`);
+    } catch (e) {
+        console.log(`🔇 Audio not supported: ${e.message}`);
+    }
+}
+
+// Keep these for compatibility with the rest of the code
+const SOUNDS = {};
+const audioCache = {};
+
+// Add sound toggle to settings
+function addSoundToggle() {
+    const settingsView = document.getElementById('settings-view');
+    if (!settingsView || document.getElementById('sound-toggle-section')) return;
+    
+    const soundsEnabled = localStorage.getItem('sounds_enabled') !== 'false';
+    
+    const soundSection = document.createElement('div');
+    soundSection.id = 'sound-toggle-section';
+    soundSection.className = 'settings-section';
+    soundSection.style.cssText = 'margin: 20px 0; padding: 20px; background: var(--card-bg, rgba(255,255,255,0.1)); border-radius: 16px;';
+    soundSection.innerHTML = `
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+            <div>
+                <h3 style="margin: 0 0 5px 0; font-size: 18px;">🎵 Sound Effects</h3>
+                <p style="margin: 0; opacity: 0.7; font-size: 14px;">Play beep sounds when completing chores</p>
+            </div>
+            <label class="switch" style="position: relative; display: inline-block; width: 60px; height: 34px;">
+                <input type="checkbox" id="sounds-toggle" ${soundsEnabled ? 'checked' : ''} 
+                       style="opacity: 0; width: 0; height: 0;">
+                <span style="position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; 
+                             background-color: #ccc; transition: 0.4s; border-radius: 34px;
+                             ${soundsEnabled ? 'background-color: #4CAF50;' : ''}"></span>
+                <span style="position: absolute; content: ''; height: 26px; width: 26px; left: 4px; 
+                             bottom: 4px; background-color: white; transition: 0.4s; border-radius: 50%;
+                             ${soundsEnabled ? 'transform: translateX(26px);' : ''}"></span>
+            </label>
+        </div>
+    `;
+    
+    const themeSection = settingsView.querySelector('.settings-section');
+    if (themeSection) {
+        themeSection.parentNode.insertBefore(soundSection, themeSection.nextSibling);
+    } else {
+        settingsView.appendChild(soundSection);
+    }
+    
+    const toggle = document.getElementById('sounds-toggle');
+    const slider = soundSection.querySelector('span');
+    const sliderButton = soundSection.querySelectorAll('span')[1];
+    
+    toggle.addEventListener('change', function() {
+        const enabled = this.checked;
+        localStorage.setItem('sounds_enabled', enabled);
+        slider.style.backgroundColor = enabled ? '#4CAF50' : '#ccc';
+        sliderButton.style.transform = enabled ? 'translateX(26px)' : 'translateX(0)';
+        if (enabled) playSound('click');
+    });
+}
+
+// Call when settings view is shown
+const originalShowSettings = window.showSettings || function() {};
+window.showSettings = function() {
+    originalShowSettings();
+    setTimeout(addSoundToggle, 100);
+};
+
+console.log('🔊 Beep sound system loaded! No external files needed.');
+
+// ============================================
+// 🎊 ENHANCED CONFETTI
+// ============================================
+
+function triggerEnhancedConfetti() {
+    const duration = 3000;
+    const colors = ['#ff0000', '#00ff00', '#0000ff', '#ffff00', '#ff00ff', '#00ffff'];
+    
+    for (let i = 0; i < 100; i++) {
+        setTimeout(() => {
+            const confetti = document.createElement('div');
+            confetti.style.cssText = `
+                position: fixed;
+                width: ${Math.random() * 10 + 5}px;
+                height: ${Math.random() * 10 + 5}px;
+                background: ${colors[Math.floor(Math.random() * colors.length)]};
+                top: -20px;
+                left: ${Math.random() * 100}%;
+                opacity: 1;
+                pointer-events: none;
+                z-index: 9999;
+                border-radius: ${Math.random() > 0.5 ? '50%' : '0'};
+                transform: rotate(${Math.random() * 360}deg);
+            `;
+            
+            document.body.appendChild(confetti);
+            
+            const fallDuration = Math.random() * 2000 + 2000;
+            const startLeft = parseFloat(confetti.style.left);
+            const drift = (Math.random() - 0.5) * 100;
+            
+            confetti.animate([
+                { transform: 'translateY(0) rotate(0deg)', opacity: 1 },
+                { transform: `translateY(${window.innerHeight + 20}px) translateX(${drift}px) rotate(${Math.random() * 720}deg)`, opacity: 0 }
+            ], {
+                duration: fallDuration,
+                easing: 'cubic-bezier(0.25, 0.46, 0.45, 0.94)'
+            }).onfinish = () => confetti.remove();
+            
+        }, Math.random() * 500);
+    }
+    
+    playSound('levelUp');
+}
+
+// Replace existing triggerConfetti
+if (typeof window.triggerConfetti !== 'undefined') {
+    window.triggerConfetti = triggerEnhancedConfetti;
+}
+
+// ============================================
+// ✨ PARTICLE BURST (Theme Changes)
+// ============================================
+
+function createParticleBurst(color) {
+    const centerX = window.innerWidth / 2;
+    const centerY = window.innerHeight / 2;
+    
+    for (let i = 0; i < 30; i++) {
+        const particle = document.createElement('div');
+        const size = Math.random() * 8 + 4;
+        particle.style.cssText = `
+            position: fixed;
+            width: ${size}px;
+            height: ${size}px;
+            background: ${color};
+            border-radius: 50%;
+            left: ${centerX}px;
+            top: ${centerY}px;
+            pointer-events: none;
+            z-index: 9999;
+        `;
+        
+        document.body.appendChild(particle);
+        
+        const angle = (Math.PI * 2 * i) / 30;
+        const velocity = Math.random() * 200 + 100;
+        const tx = Math.cos(angle) * velocity;
+        const ty = Math.sin(angle) * velocity;
+        
+        particle.animate([
+            { transform: 'translate(0, 0) scale(1)', opacity: 1 },
+            { transform: `translate(${tx}px, ${ty}px) scale(0)`, opacity: 0 }
+        ], {
+            duration: 800,
+            easing: 'cubic-bezier(0.25, 0.46, 0.45, 0.94)'
+        }).onfinish = () => particle.remove();
+    }
+    
+    playSound('swoosh');
+}
+
+// ============================================
+// 🔥 BUTTON PRESS EFFECTS
+// ============================================
+
+function addButtonEffects() {
+    const style = document.createElement('style');
+    style.textContent = `
+        .btn:active, button:active {
+            transform: scale(0.95) !important;
+            transition: transform 0.1s ease !important;
+        }
+        .btn, button {
+            transition: all 0.2s ease !important;
+        }
+        .btn:hover, button:hover {
+            transform: scale(1.05);
+            filter: brightness(1.1);
+        }
+    `;
+    if (!document.getElementById('button-effects-style')) {
+        style.id = 'button-effects-style';
+        document.head.appendChild(style);
+    }
+    
+    // Add click sound to all buttons
+    document.addEventListener('click', function(e) {
+        if (e.target.tagName === 'BUTTON' || e.target.classList.contains('btn')) {
+            playSound('click');
+        }
+    });
+}
+
+// ============================================
+// 💫 ANIMATED POINTS COUNTER
+// ============================================
+
+function animatePoints(element, start, end, duration = 1000) {
+    const startTime = performance.now();
+    const difference = end - start;
+    
+    function update(currentTime) {
+        const elapsed = currentTime - startTime;
+        const progress = Math.min(elapsed / duration, 1);
+        const easeProgress = progress < 0.5 
+            ? 2 * progress * progress 
+            : 1 - Math.pow(-2 * progress + 2, 2) / 2;
+        
+        const current = Math.floor(start + (difference * easeProgress));
+        element.textContent = current;
+        
+        if (progress < 1) {
+            requestAnimationFrame(update);
+        } else {
+            element.textContent = end;
+        }
+    }
+    
+    requestAnimationFrame(update);
+}
+
+// ============================================================================
+// ANIMATION FUNCTIONS
+// ============================================================================
+
+// Global animation container
+let currentAnimation = null;
+
+// Clear any existing animation
+function clearThemeAnimation() {
+    if (currentAnimation) {
+        currentAnimation.remove();
+        currentAnimation = null;
+    }
+}
+
+// 1. STARRY BACKGROUND (Space theme)
+function createStarryBackground() {
+    clearThemeAnimation();
+    
+    const container = document.createElement('div');
+    container.className = 'theme-animation-layer';
+    container.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        pointer-events: none;
+        z-index: 1;
+        overflow: hidden;
+    `;
+    
+    // Create 50 stars
+    for (let i = 0; i < 50; i++) {
+        const star = document.createElement('div');
+        star.style.cssText = `
+            position: absolute;
+            width: ${Math.random() * 3 + 1}px;
+            height: ${Math.random() * 3 + 1}px;
+            background: white;
+            border-radius: 50%;
+            left: ${Math.random() * 100}%;
+            top: ${Math.random() * 100}%;
+            opacity: ${Math.random()};
+            animation: twinkle ${Math.random() * 3 + 2}s ease-in-out infinite;
+            box-shadow: 0 0 ${Math.random() * 10 + 5}px rgba(255, 255, 255, 0.8);
+        `;
+        container.appendChild(star);
+    }
+    
+    // Add CSS animation for twinkling
+    const style = document.createElement('style');
+    style.textContent = `
+        @keyframes twinkle {
+            0%, 100% { opacity: 0.2; }
+            50% { opacity: 1; }
+        }
+    `;
+    document.head.appendChild(style);
+    
+    document.getElementById('app-screen').appendChild(container);
+    currentAnimation = container;
+    console.log('⭐ Stars created!');
+}
+
+// 2. FLOATING BUBBLES (Ocean theme)
+function createBubbles() {
+    clearThemeAnimation();
+    
+    const container = document.createElement('div');
+    container.className = 'theme-animation-layer';
+    container.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        pointer-events: none;
+        z-index: 1;
+        overflow: hidden;
+    `;
+    
+    // Create 30 bubbles
+    for (let i = 0; i < 30; i++) {
+        const bubble = document.createElement('div');
+        const size = Math.random() * 40 + 20;
+        const startLeft = Math.random() * 100;
+        const drift = (Math.random() - 0.5) * 30; // Horizontal drift
+        const duration = Math.random() * 5 + 8; // 8-13 seconds
+        const delay = Math.random() * 5;
+        
+        bubble.style.cssText = `
+            position: absolute;
+            width: ${size}px;
+            height: ${size}px;
+            background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.8), rgba(6, 182, 212, 0.3));
+            border-radius: 50%;
+            left: ${startLeft}%;
+            bottom: -50px;
+            opacity: 0.6;
+            animation: floatUp ${duration}s ease-in ${delay}s infinite;
+            box-shadow: inset 0 0 10px rgba(255, 255, 255, 0.5);
+        `;
+        
+        // Set CSS variable for drift
+        bubble.style.setProperty('--drift', `${drift}%`);
+        
+        container.appendChild(bubble);
+    }
+    
+    // Add CSS animation
+    const style = document.createElement('style');
+    style.textContent = `
+        @keyframes floatUp {
+            0% {
+                transform: translateY(0) translateX(0);
+                opacity: 0;
+            }
+            10% {
+                opacity: 0.6;
+            }
+            90% {
+                opacity: 0.6;
+            }
+            100% {
+                transform: translateY(-100vh) translateX(var(--drift));
+                opacity: 0;
+            }
+        }
+    `;
+    document.head.appendChild(style);
+    
+    document.getElementById('app-screen').appendChild(container);
+    currentAnimation = container;
+    console.log('🫧 Bubbles created!');
+}
+
+// 3. FALLING SNOWFLAKES (Arctic theme)
+function createSnowflakes() {
+    clearThemeAnimation();
+    
+    const container = document.createElement('div');
+    container.className = 'theme-animation-layer';
+    container.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        pointer-events: none;
+        z-index: 1;
+        overflow: hidden;
+    `;
+    
+    // Create 40 snowflakes
+    for (let i = 0; i < 40; i++) {
+        const snowflake = document.createElement('div');
+        const size = Math.random() * 8 + 4;
+        const startLeft = Math.random() * 100;
+        const drift = (Math.random() - 0.5) * 40;
+        const duration = Math.random() * 5 + 10; // 10-15 seconds
+        const delay = Math.random() * 5;
+        const rotation = Math.random() * 360;
+        
+        snowflake.innerHTML = '❄️';
+        snowflake.style.cssText = `
+            position: absolute;
+            font-size: ${size}px;
+            left: ${startLeft}%;
+            top: -20px;
+            opacity: ${Math.random() * 0.6 + 0.4};
+            animation: snowfall ${duration}s linear ${delay}s infinite;
+            transform: rotate(${rotation}deg);
+            color: rgba(224, 242, 254, 0.9);
+            text-shadow: 0 0 5px rgba(255, 255, 255, 0.8);
+        `;
+        
+        snowflake.style.setProperty('--drift', `${drift}%`);
+        snowflake.style.setProperty('--rotation', `${Math.random() * 720 - 360}deg`);
+        
+        container.appendChild(snowflake);
+    }
+    
+    // Add CSS animation
+    const style = document.createElement('style');
+    style.textContent = `
+        @keyframes snowfall {
+            0% {
+                transform: translateY(0) translateX(0) rotate(0deg);
+                opacity: 0;
+            }
+            10% {
+                opacity: 0.8;
+            }
+            90% {
+                opacity: 0.8;
+            }
+            100% {
+                transform: translateY(100vh) translateX(var(--drift)) rotate(var(--rotation));
+                opacity: 0;
+            }
+        }
+    `;
+    document.head.appendChild(style);
+    
+    document.getElementById('app-screen').appendChild(container);
+    currentAnimation = container;
+    console.log('❄️ Snowflakes created!');
+}
+
+// 4. RISING EMBERS (Lava theme)
+function createEmbers() {
+    clearThemeAnimation();
+    
+    const container = document.createElement('div');
+    container.className = 'theme-animation-layer';
+    container.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        pointer-events: none;
+        z-index: 1;
+        overflow: hidden;
+    `;
+    
+    // Create 35 embers
+    for (let i = 0; i < 35; i++) {
+        const ember = document.createElement('div');
+        const size = Math.random() * 6 + 2;
+        const startLeft = Math.random() * 100;
+        const drift = (Math.random() - 0.5) * 20;
+        const duration = Math.random() * 4 + 6; // 6-10 seconds
+        const delay = Math.random() * 5;
+        
+        ember.style.cssText = `
+            position: absolute;
+            width: ${size}px;
+            height: ${size}px;
+            background: radial-gradient(circle, #ff6b6b, #c92a2a);
+            border-radius: 50%;
+            left: ${startLeft}%;
+            bottom: -20px;
+            opacity: ${Math.random() * 0.6 + 0.4};
+            animation: riseUp ${duration}s ease-out ${delay}s infinite;
+            box-shadow: 0 0 ${size * 2}px rgba(255, 107, 107, 0.8);
+            filter: blur(${Math.random() * 1}px);
+        `;
+        
+        ember.style.setProperty('--drift', `${drift}%`);
+        
+        container.appendChild(ember);
+    }
+    
+    // Add CSS animation
+    const style = document.createElement('style');
+    style.textContent = `
+        @keyframes riseUp {
+            0% {
+                transform: translateY(0) translateX(0) scale(1);
+                opacity: 0;
+            }
+            10% {
+                opacity: 0.8;
+            }
+            50% {
+                opacity: 0.6;
+            }
+            100% {
+                transform: translateY(-100vh) translateX(var(--drift)) scale(0.3);
+                opacity: 0;
+            }
+        }
+    `;
+    document.head.appendChild(style);
+    
+    document.getElementById('app-screen').appendChild(container);
+    currentAnimation = container;
+    console.log('🔥 Embers created!');
+}
+
+// 5. SPARKLES (Rainbow theme)
+function createSparkles() {
+    clearThemeAnimation();
+    
+    const container = document.createElement('div');
+    container.className = 'theme-animation-layer';
+    container.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        pointer-events: none;
+        z-index: 1;
+        overflow: hidden;
+    `;
+    
+    const colors = ['#fa709a', '#fee140', '#30cfd0', '#a8edea', '#fed6e3'];
+    
+    // Create 50 sparkles
+    for (let i = 0; i < 50; i++) {
+        const sparkle = document.createElement('div');
+        const size = Math.random() * 4 + 2;
+        const left = Math.random() * 100;
+        const top = Math.random() * 100;
+        const color = colors[Math.floor(Math.random() * colors.length)];
+        const duration = Math.random() * 2 + 1;
+        const delay = Math.random() * 3;
+        
+        sparkle.style.cssText = `
+            position: absolute;
+            width: ${size}px;
+            height: ${size}px;
+            background: ${color};
+            border-radius: 50%;
+            left: ${left}%;
+            top: ${top}%;
+            opacity: 0;
+            animation: sparkle ${duration}s ease-in-out ${delay}s infinite;
+            box-shadow: 0 0 ${size * 3}px ${color};
+        `;
+        
+        container.appendChild(sparkle);
+    }
+    
+    // Add CSS animation
+    const style = document.createElement('style');
+    style.textContent = `
+        @keyframes sparkle {
+            0%, 100% { 
+                opacity: 0;
+                transform: scale(0);
+            }
+            50% { 
+                opacity: 1;
+                transform: scale(1.5);
+            }
+        }
+    `;
+    document.head.appendChild(style);
+    
+    document.getElementById('app-screen').appendChild(container);
+    currentAnimation = container;
+    console.log('✨ Sparkles created!');
+}
+
+// ============================================================================
+// ENHANCED THEMES WITH ANIMATION FLAGS
+// ============================================================================
+
+const ENHANCED_THEMES = {
+    space: {
+        nameColor: '#818CF8',
+        nameFont: 'techno',
+        nameSize: 26,
+        borderStyle: 'glow',
+        borderWidth: 4,
+        avatarBorderColor: '#6366F1',
+        bgGradient: 'linear-gradient(135deg, #0c0a1d 0%, #1a0d2e 50%, #16003b 100%)',
+        bgColor: '#0c0a1d',
+        cardBg: '#FFFFFF',
+        accentColor: '#818CF8',
+        buttonColor: '#6366F1',
+        stars: true  // ⭐ Animation flag
+    },
+    
+    ocean: {
+        nameColor: '#0891B2',
+        nameFont: 'bubbly',
+        nameSize: 28,
+        borderStyle: 'glow',
+        borderWidth: 3,
+        avatarBorderColor: '#06B6D4',
+        bgGradient: 'linear-gradient(135deg, #0c4a6e 0%, #0e7490 50%, #06b6d4 100%)',
+        bgColor: '#0c4a6e',
+        cardBg: '#FFFFFF',
+        accentColor: '#0891B2',
+        buttonColor: '#0891B2',
+        bubbles: true  // 🫧 Animation flag
+    },
+    
+    arctic: {
+        nameColor: '#0EA5E9',
+        nameFont: 'default',
+        nameSize: 26,
+        borderStyle: 'glow',
+        borderWidth: 3,
+        avatarBorderColor: '#38BDF8',
+        bgGradient: 'linear-gradient(135deg, #0c4a6e 0%, #075985 50%, #0284c7 100%)',
+        bgColor: '#0c4a6e',
+        cardBg: '#FFFFFF',
+        accentColor: '#0EA5E9',
+        buttonColor: '#0284C7',
+        snowflakes: true  // ❄️ Animation flag
+    },
+    
+    lava: {
+        nameColor: '#DC2626',
+        nameFont: 'chunky',
+        nameSize: 29,
+        borderStyle: 'glow',
+        borderWidth: 4,
+        avatarBorderColor: '#EF4444',
+        bgGradient: 'linear-gradient(135deg, #7f1d1d 0%, #991b1b 50%, #dc2626 100%)',
+        bgColor: '#7f1d1d',
+        cardBg: '#FFFFFF',
+        accentColor: '#DC2626',
+        buttonColor: '#B91C1C',
+        embers: true  // 🔥 Animation flag
+    },
+    
+    rainbow: {
+        nameColor: '#EC4899',
+        nameFont: 'comic',
+        nameSize: 28,
+        borderStyle: 'gradient',
+        borderWidth: 4,
+        avatarBorderColor: '#EC4899',
+        bgGradient: 'linear-gradient(135deg, #fa709a 0%, #fee140 25%, #30cfd0 50%, #a8edea 75%, #fed6e3 100%)',
+        bgColor: '#fef3c7',
+        cardBg: '#FFFFFF',
+        accentColor: '#EC4899',
+        buttonColor: '#DB2777',
+        sparkles: true  // ✨ Animation flag
+    },
+    
+    forest: {
+        nameColor: '#10B981',
+        nameFont: 'bold',
+        nameSize: 28,
+        borderStyle: 'solid',
+        borderWidth: 3,
+        avatarBorderColor: '#059669',
+        bgGradient: 'linear-gradient(135deg, #064e3b 0%, #047857 50%, #059669 100%)',
+        bgColor: '#064e3b',
+        cardBg: '#FFFFFF',
+        accentColor: '#10B981',
+        buttonColor: '#059669'
+    },
+    
+    candy: {
+        nameColor: '#EC4899',
+        nameFont: 'bubbly',
+        nameSize: 28,
+        borderStyle: 'gradient',
+        borderWidth: 4,
+        avatarBorderColor: '#F472B6',
+        bgGradient: 'linear-gradient(135deg, #fbc2eb 0%, #a6c1ee 50%, #ffecd2 100%)',
+        bgColor: '#fdf2f8',
+        cardBg: '#FFFFFF',
+        accentColor: '#EC4899',
+        buttonColor: '#F472B6'
+    },
+    
+    midnight: {
+        nameColor: '#C084FC',
+        nameFont: 'fancy',
+        nameSize: 26,
+        borderStyle: 'glow',
+        borderWidth: 3,
+        avatarBorderColor: '#C084FC',
+        bgGradient: 'linear-gradient(135deg, #1e1b4b 0%, #312e81 50%, #4c1d95 100%)',
+        bgColor: '#1e1b4b',
+        cardBg: '#FFFFFF',
+        accentColor: '#C084FC',
+        buttonColor: '#A855F7',
+        textColor: '#E9D5FF'  // Light text for dark theme
+    }
+};
+
+// Merge enhanced themes into existing themes
+if (typeof window !== 'undefined' && window.themes) {
+    Object.assign(window.themes, ENHANCED_THEMES);
+    console.log('🎨 Enhanced themes with animations merged!');
+} else if (typeof themes !== 'undefined') {
+    Object.assign(themes, ENHANCED_THEMES);
+    console.log('🎨 Enhanced themes with animations merged!');
+}
+
+// ============================================
+// 🎯 INTEGRATION WITH EXISTING FUNCTIONS
+// ============================================
+
+// Wrap applyTheme to add effects
+const originalApplyTheme = window.applyTheme || function() {};
+window.applyTheme = function(themeName) {
+    const themeObj = window.themes || themes || {};
+    const theme = themeObj[themeName];
+    if (theme) {
+        createParticleBurst(theme.accentColor);
+        
+        // Clear any existing animation first
+        clearThemeAnimation();
+        
+        // Check for theme animations
+        if (theme.stars) {
+            console.log('⭐ Creating starry background...');
+            createStarryBackground();
+        } else if (theme.bubbles) {
+            console.log('🫧 Creating bubbles...');
+            createBubbles();
+        } else if (theme.snowflakes) {
+            console.log('❄️ Creating snowflakes...');
+            createSnowflakes();
+        } else if (theme.embers) {
+            console.log('🔥 Creating embers...');
+            createEmbers();
+        } else if (theme.sparkles) {
+            console.log('✨ Creating sparkles...');
+            createSparkles();
+        }
+    }
+    
+    return originalApplyTheme(themeName);
+};
+
+// Wrap submitChore to add sound
+const originalSubmitChore = window.submitChore || function() {};
+window.submitChore = async function(choreId, choreTitle) {
+    const result = await originalSubmitChore(choreId, choreTitle);
+    
+    if (result && result.ok) {
+        playSound('complete');
+        if (result.data.status === 'approved' && result.data.points_awarded > 0) {
+            playSound('points');
+            
+            // Animate points counter
+            const pointsElements = document.querySelectorAll('[class*="points"]');
+            pointsElements.forEach(el => {
+                const currentPoints = parseInt(el.textContent);
+                if (!isNaN(currentPoints)) {
+                    animatePoints(el, currentPoints, currentPoints + result.data.points_awarded);
+                }
+            });
+        }
+    }
+    
+    return result;
+};
+
+// ============================================
+// 🚀 INITIALIZATION
+// ============================================
+
+// Initialize on page load
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('🎨 ChoreQuest Enhancements Loaded!');
+    
+    // Add button effects
+    addButtonEffects();
+    
+    // Add sound toggle to settings
+    setTimeout(addSoundToggle, 1000);
+    
+    // Check if any animated theme is active
+    const settings = JSON.parse(localStorage.getItem('kid_settings') || '{}');
+    if (settings.themeName) {
+        const themeObj = window.themes || themes || {};
+        const currentTheme = themeObj[settings.themeName];
+        if (currentTheme) {
+            if (currentTheme.stars) createStarryBackground();
+            else if (currentTheme.bubbles) createBubbles();
+            else if (currentTheme.snowflakes) createSnowflakes();
+            else if (currentTheme.embers) createEmbers();
+            else if (currentTheme.sparkles) createSparkles();
+        }
+    }
+});
+
+// Also initialize immediately if DOM is already loaded
+if (document.readyState === 'complete' || document.readyState === 'interactive') {
+    addButtonEffects();
+    
+    const settings = JSON.parse(localStorage.getItem('kid_settings') || '{}');
+    if (settings.themeName) {
+        const themeObj = window.themes || themes || {};
+        const currentTheme = themeObj[settings.themeName];
+        if (currentTheme) {
+            if (currentTheme.stars) createStarryBackground();
+            else if (currentTheme.bubbles) createBubbles();
+            else if (currentTheme.snowflakes) createSnowflakes();
+            else if (currentTheme.embers) createEmbers();
+            else if (currentTheme.sparkles) createSparkles();
+        }
+    }
+}
+
+console.log('🎉 Theme animations package loaded!');
+console.log('📋 Available animations: stars, bubbles, snowflakes, embers, sparkles');

@@ -997,28 +997,30 @@ case 'approve_submission':
         break;
     
     case 'list_rewards':
-        $db = getDb();
-    
-        if (isset($_SESSION['admin_id'])) {
-            $stmt = $db->query("
-                SELECT r.*, 
-                       COALESCE(r.available, 1) as available,
-                       COALESCE(r.created_by, 1) as created_by
-                FROM rewards r 
-                ORDER BY r.available DESC, r.cost_points
-            ");
-        } else {
-            $stmt = $db->query("
-                SELECT r.*,
-                    COALESCE(r.available, 1) as available
-                FROM rewards r 
-                WHERE COALESCE(r.available, 1) = 1 
-                ORDER BY r.cost_points
-            ");
-        }
-    
-        jsonResponse(true, $stmt->fetchAll());
-        break;
+    $db = getDb();
+
+    if (isset($_SESSION['admin_id'])) {
+        // Admin can see all rewards (active and inactive)
+        $stmt = $db->query("
+            SELECT r.*, 
+                   COALESCE(r.is_active, 1) as is_active,
+                   COALESCE(r.created_by, 1) as created_by
+            FROM rewards r 
+            ORDER BY r.is_active DESC, r.cost_points
+        ");
+    } else {
+        // Kids can only see active rewards
+        $stmt = $db->query("
+            SELECT r.*,
+                COALESCE(r.is_active, 1) as is_active
+            FROM rewards r 
+            WHERE COALESCE(r.is_active, 1) = 1 
+            ORDER BY r.cost_points
+        ");
+    }
+
+    jsonResponse(true, $stmt->fetchAll());
+    break;
     
     case 'toggle_reward':
         requireAdmin();
