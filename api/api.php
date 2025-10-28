@@ -31,6 +31,13 @@ error_log("API called: action=" . $action);
 // Start session
 startSession();
 
+// 🔍 DEBUG: Log all session variables
+error_log("=== API Session Debug ===");
+error_log("Session ID: " . session_id());
+error_log("Session variables: " . print_r($_SESSION, true));
+error_log("Action: " . ($input['action'] ?? 'none'));
+error_log("========================");
+
 // Helper functions
 function jsonResponse($ok, $data = null, $error = null) {
     echo json_encode([
@@ -949,6 +956,290 @@ case 'approve_submission':
         jsonResponse(true, ['message' => 'Task reviewed']);
         break;
     
+    case 'list_quest_task_submissions':
+        requireAdmin();
+        
+        $status = $input['status'] ?? 'pending';
+        if (!in_array($status, ['pending', 'approved', 'rejected'])) {
+            $status = 'pending';
+        }
+        
+        $db = getDb();
+        $stmt = $db->prepare("
+            SELECT kqts.*, 
+                   u.kid_name, 
+                   qt.title as task_title,
+                   qt.points,
+                   q.title as quest_title
+            FROM kid_quest_task_status kqts
+            JOIN users u ON kqts.kid_user_id = u.id
+            JOIN quest_tasks qt ON kqts.quest_task_id = qt.id
+            JOIN quests q ON qt.quest_id = q.id
+            WHERE kqts.status = ?
+            ORDER BY kqts.submitted_at DESC
+        ");
+        $stmt->execute([$status]);
+        
+        jsonResponse(true, $stmt->fetchAll());
+        break;
+        
+    case 'list_themes':
+        // Anyone can list themes (admin or kid)
+        $db = getDb();
+        $stmt = $db->query("
+            SELECT id, name, bg_color, bg_gradient, text_color, accent_color, 
+                   border_style, border_width, border_radius, font_family,
+                   COALESCE(has_animation, 0) as has_animation,
+                   animation_type,
+                   COALESCE(card_bg_color, '#FFFFFF') as card_bg_color,
+                   COALESCE(card_opacity, 0.95) as card_opacity,
+                   COALESCE(card_blur, 10) as card_blur,
+                   COALESCE(card_shadow, '0 8px 32px rgba(0,0,0,0.1)') as card_shadow,
+                   COALESCE(header_bg_color, '#FFFFFF') as header_bg_color,
+                   COALESCE(header_opacity, 0.85) as header_opacity,
+                   COALESCE(header_blur, 20) as header_blur,
+                   COALESCE(nav_bg_color, '#FFFFFF') as nav_bg_color,
+                   COALESCE(nav_opacity, 0.95) as nav_opacity,
+                   COALESCE(nav_blur, 20) as nav_blur,
+                   button_gradient
+            FROM themes 
+            ORDER BY name
+        ");
+        $themes = $stmt->fetchAll();
+        
+        // If no themes exist, create defaults
+        if (empty($themes)) {
+            // Create default themes
+            $defaultThemes = [
+                ['name' => 'Ocean', 'bg_color' => '#0EA5E9', 'bg_gradient' => 'linear-gradient(135deg, #0EA5E9 0%, #0284C7 100%)', 'text_color' => '#FFFFFF', 'accent_color' => '#06B6D4', 'border_style' => 'solid', 'border_width' => '3px', 'border_radius' => '15px', 'font_family' => 'Quicksand'],
+                ['name' => 'Sunset', 'bg_color' => '#F97316', 'bg_gradient' => 'linear-gradient(135deg, #F97316 0%, #EA580C 100%)', 'text_color' => '#FFFFFF', 'accent_color' => '#FB923C', 'border_style' => 'solid', 'border_width' => '3px', 'border_radius' => '20px', 'font_family' => 'Poppins'],
+                ['name' => 'Forest', 'bg_color' => '#10B981', 'bg_gradient' => 'linear-gradient(135deg, #10B981 0%, #059669 100%)', 'text_color' => '#FFFFFF', 'accent_color' => '#34D399', 'border_style' => 'solid', 'border_width' => '3px', 'border_radius' => '12px', 'font_family' => 'Nunito'],
+                ['name' => 'Space', 'bg_color' => '#6366F1', 'bg_gradient' => 'linear-gradient(135deg, #6366F1 0%, #4F46E5 100%)', 'text_color' => '#FFFFFF', 'accent_color' => '#818CF8', 'border_style' => 'solid', 'border_width' => '3px', 'border_radius' => '18px', 'font_family' => 'Roboto'],
+                ['name' => 'Candy', 'bg_color' => '#EC4899', 'bg_gradient' => 'linear-gradient(135deg, #EC4899 0%, #DB2777 100%)', 'text_color' => '#FFFFFF', 'accent_color' => '#F472B6', 'border_style' => 'solid', 'border_width' => '4px', 'border_radius' => '25px', 'font_family' => 'Comic Neue'],
+                ['name' => 'Lava', 'bg_color' => '#DC2626', 'bg_gradient' => 'linear-gradient(135deg, #DC2626 0%, #B91C1C 100%)', 'text_color' => '#FFFFFF', 'accent_color' => '#EF4444', 'border_style' => 'solid', 'border_width' => '3px', 'border_radius' => '10px', 'font_family' => 'Russo One'],
+                ['name' => 'Mint', 'bg_color' => '#14B8A6', 'bg_gradient' => 'linear-gradient(135deg, #14B8A6 0%, #0D9488 100%)', 'text_color' => '#FFFFFF', 'accent_color' => '#2DD4BF', 'border_style' => 'solid', 'border_width' => '3px', 'border_radius' => '16px', 'font_family' => 'Quicksand'],
+                ['name' => 'Midnight', 'bg_color' => '#1E293B', 'bg_gradient' => 'linear-gradient(135deg, #1E293B 0%, #0F172A 100%)', 'text_color' => '#C4B5FD', 'accent_color' => '#8B5CF6', 'border_style' => 'solid', 'border_width' => '3px', 'border_radius' => '14px', 'font_family' => 'Orbitron'],
+                ['name' => 'Rainbow', 'bg_color' => '#8B5CF6', 'bg_gradient' => 'linear-gradient(135deg, #EC4899 0%, #8B5CF6 33%, #3B82F6 66%, #10B981 100%)', 'text_color' => '#FFFFFF', 'accent_color' => '#A78BFA', 'border_style' => 'solid', 'border_width' => '4px', 'border_radius' => '20px', 'font_family' => 'Fredoka One'],
+                ['name' => 'Retro', 'bg_color' => '#FBBF24', 'bg_gradient' => 'linear-gradient(135deg, #FBBF24 0%, #F59E0B 100%)', 'text_color' => '#78350F', 'accent_color' => '#FCD34D', 'border_style' => 'dashed', 'border_width' => '4px', 'border_radius' => '8px', 'font_family' => 'Press Start 2P'],
+                ['name' => 'Desert', 'bg_color' => '#D97706', 'bg_gradient' => 'linear-gradient(135deg, #D97706 0%, #B45309 100%)', 'text_color' => '#FFFFFF', 'accent_color' => '#F59E0B', 'border_style' => 'solid', 'border_width' => '3px', 'border_radius' => '12px', 'font_family' => 'Nunito'],
+                ['name' => 'Arctic', 'bg_color' => '#38BDF8', 'bg_gradient' => 'linear-gradient(135deg, #BAE6FD 0%, #38BDF8 100%)', 'text_color' => '#0C4A6E', 'accent_color' => '#0EA5E9', 'border_style' => 'solid', 'border_width' => '3px', 'border_radius' => '18px', 'font_family' => 'Quicksand']
+            ];
+            
+            foreach ($defaultThemes as $theme) {
+                $stmt = $db->prepare("
+                    INSERT INTO themes (name, bg_color, bg_gradient, text_color, accent_color, border_style, border_width, border_radius, font_family) 
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ");
+                $stmt->execute([
+                    $theme['name'],
+                    $theme['bg_color'],
+                    $theme['bg_gradient'],
+                    $theme['text_color'],
+                    $theme['accent_color'],
+                    $theme['border_style'],
+                    $theme['border_width'],
+                    $theme['border_radius'],
+                    $theme['font_family']
+                ]);
+            }
+            
+            // Fetch them again
+            $stmt = $db->query("SELECT * FROM themes ORDER BY name");
+            $themes = $stmt->fetchAll();
+        }
+        
+        jsonResponse(true, $themes);
+        break;
+    
+    case 'update_theme':
+        requireAdmin();
+        
+        $themeId = intval($input['theme_id'] ?? 0);
+        $name = sanitize($input['name'] ?? '', 50);
+        $bgColor = sanitize($input['bg_color'] ?? '#000000', 20);
+        $bgGradient = sanitize($input['bg_gradient'] ?? '', 200);
+        $textColor = sanitize($input['text_color'] ?? '#FFFFFF', 20);
+        $accentColor = sanitize($input['accent_color'] ?? '#000000', 20);
+        $borderStyle = sanitize($input['border_style'] ?? 'solid', 20);
+        $borderWidth = sanitize($input['border_width'] ?? '3px', 10);
+        $borderRadius = sanitize($input['border_radius'] ?? '15px', 10);
+        $fontFamily = sanitize($input['font_family'] ?? 'Quicksand', 50);
+        $hasAnimation = intval($input['has_animation'] ?? 0);
+        $animationType = sanitize($input['animation_type'] ?? '', 20);
+        
+        // New advanced CSS controls
+        $cardBgColor = sanitize($input['card_bg_color'] ?? '#FFFFFF', 20);
+        $cardOpacity = floatval($input['card_opacity'] ?? 0.95);
+        $cardBlur = intval($input['card_blur'] ?? 10);
+        $cardShadow = sanitize($input['card_shadow'] ?? '0 8px 32px rgba(0,0,0,0.1)', 100);
+        $headerBgColor = sanitize($input['header_bg_color'] ?? '#FFFFFF', 20);
+        $headerOpacity = floatval($input['header_opacity'] ?? 0.85);
+        $headerBlur = intval($input['header_blur'] ?? 20);
+        $navBgColor = sanitize($input['nav_bg_color'] ?? '#FFFFFF', 20);
+        $navOpacity = floatval($input['nav_opacity'] ?? 0.95);
+        $navBlur = intval($input['nav_blur'] ?? 20);
+        $buttonGradient = sanitize($input['button_gradient'] ?? '', 200);
+
+        if (!$themeId || !$name) {
+            jsonResponse(false, null, 'Theme ID and name required');
+        }
+        
+        $db = getDb();
+        $stmt = $db->prepare("
+            UPDATE themes 
+            SET name = ?, bg_color = ?, bg_gradient = ?, text_color = ?, accent_color = ?, 
+                border_style = ?, border_width = ?, border_radius = ?, font_family = ?,
+                has_animation = ?, animation_type = ?,
+                card_bg_color = ?, card_opacity = ?, card_blur = ?, card_shadow = ?,
+                header_bg_color = ?, header_opacity = ?, header_blur = ?,
+                nav_bg_color = ?, nav_opacity = ?, nav_blur = ?, button_gradient = ?
+            WHERE id = ?
+        ");
+        $stmt->execute([
+            $name, $bgColor, $bgGradient, $textColor, $accentColor, 
+            $borderStyle, $borderWidth, $borderRadius, $fontFamily,
+            $hasAnimation, $animationType,
+            $cardBgColor, $cardOpacity, $cardBlur, $cardShadow,
+            $headerBgColor, $headerOpacity, $headerBlur,
+            $navBgColor, $navOpacity, $navBlur, $buttonGradient,
+            $themeId
+        ]);
+        
+        logAudit($_SESSION['admin_id'], 'update_theme', ['theme_id' => $themeId, 'name' => $name]);
+        jsonResponse(true, ['message' => 'Theme updated']);
+        break;
+        
+case 'submit_game_score':
+        // Use requireKid() like other kid endpoints do
+        $kid = requireKid();
+        $kidUserId = $kid['kid_user_id'];
+        
+        $score = intval($input['score'] ?? 0);
+        $difficulty = sanitize($input['difficulty'] ?? 'easy', 10);
+        $gameType = sanitize($input['game_type'] ?? 'stars', 20);
+        
+        error_log("Saving game score: kid=$kidUserId, game=$gameType, score=$score, difficulty=$difficulty");
+        
+        if (!in_array($difficulty, ['easy', 'medium', 'hard'])) {
+            jsonResponse(false, null, 'Invalid difficulty: ' . $difficulty);
+        }
+        
+        if (!in_array($gameType, ['stars', 'math', 'music'])) {
+            jsonResponse(false, null, 'Invalid game type: ' . $gameType);
+        }
+        
+        if ($score < 0 || $score > 100000) {
+            jsonResponse(false, null, 'Invalid score: ' . $score);
+        }
+        
+        $db = getDb();
+        
+        try {
+            $stmt = $db->prepare("
+                INSERT INTO game_scores (kid_user_id, score, difficulty, game_type, played_at)
+                VALUES (?, ?, ?, ?, datetime('now'))
+            ");
+            $stmt->execute([$kidUserId, $score, $difficulty, $gameType]);
+            
+            error_log("✅ Game score saved successfully! ID: " . $db->lastInsertId());
+            
+            jsonResponse(true, ['message' => 'Score saved', 'id' => $db->lastInsertId()]);
+        } catch (Exception $e) {
+            error_log("❌ Error saving game score: " . $e->getMessage());
+            jsonResponse(false, null, 'Database error: ' . $e->getMessage());
+        }
+        break;
+
+case 'get_leaderboard':
+        // Leaderboard is public, no auth needed
+        error_log("Loading leaderboard: period=" . ($input['period'] ?? 'none') . ", difficulty=" . ($input['difficulty'] ?? 'none'));
+        
+        $period = sanitize($input['period'] ?? 'all', 20);
+        $difficulty = sanitize($input['difficulty'] ?? 'all', 10);
+        $gameType = sanitize($input['game_type'] ?? 'stars', 20);
+        
+        $db = getDb();
+        
+        // Build WHERE clause for time period
+        $timeWhere = '';
+        switch ($period) {
+            case 'today':
+                $timeWhere = "AND DATE(gs.played_at) = DATE('now')";
+                break;
+            case 'week':
+                $timeWhere = "AND gs.played_at >= datetime('now', '-7 days')";
+                break;
+            case 'month':
+                $timeWhere = "AND gs.played_at >= datetime('now', '-30 days')";
+                break;
+            case 'all':
+            default:
+                $timeWhere = '';
+                break;
+        }
+        
+        // Build WHERE clause for difficulty
+        $difficultyWhere = '';
+        if ($difficulty !== 'all' && in_array($difficulty, ['easy', 'medium', 'hard'])) {
+            $difficultyWhere = "AND gs.difficulty = " . $db->quote($difficulty);
+        }
+        
+        // Build WHERE clause for game type
+        $gameTypeWhere = "AND gs.game_type = " . $db->quote($gameType);
+        
+        try {
+            // Get top scores grouped by kid
+            $stmt = $db->query("
+                SELECT 
+                    u.kid_name,
+                    MAX(gs.score) as best_score,
+                    gs.difficulty,
+                    MAX(gs.played_at) as last_played
+                FROM game_scores gs
+                JOIN users u ON gs.kid_user_id = u.id
+                WHERE 1=1 $timeWhere $difficultyWhere $gameTypeWhere
+                GROUP BY u.id, gs.difficulty
+                ORDER BY best_score DESC
+                LIMIT 50
+            ");
+            
+            $leaderboard = $stmt->fetchAll();
+            
+            error_log("✅ Found " . count($leaderboard) . " leaderboard entries");
+            
+            jsonResponse(true, $leaderboard);
+        } catch (Exception $e) {
+            error_log("❌ Error loading leaderboard: " . $e->getMessage());
+            jsonResponse(false, null, 'Database error: ' . $e->getMessage());
+        }
+        break;
+                    
+    case 'get_my_game_stats':
+        // Requires kid authentication
+        if (!isset($_SESSION['kid_user_id'])) {
+            jsonResponse(false, null, 'Not authenticated');
+        }
+        
+        $kidUserId = intval($_SESSION['kid_user_id']);
+        $db = getDb();
+        
+        // Get personal bests per difficulty
+        $stmt = $db->prepare("
+            SELECT 
+                difficulty,
+                MAX(score) as best_score,
+                COUNT(*) as games_played,
+                AVG(score) as avg_score
+            FROM game_scores
+            WHERE kid_user_id = ?
+            GROUP BY difficulty
+        ");
+        $stmt->execute([$kidUserId]);
+        $stats = $stmt->fetchAll();
+        
+        jsonResponse(true, $stats);
+        break;
+        
     case 'kid_quest_progress':
         $kid = requireKid();
         

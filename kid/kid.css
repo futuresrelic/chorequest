@@ -247,16 +247,19 @@ main {
 }
 
 .card {
-    background: var(--card-bg);
-    border-radius: var(--radius);
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
+    color: #1F2937;
     padding: 20px;
-    box-shadow: var(--shadow);
+    border-radius: 16px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+    margin-bottom: 15px;
     transition: transform 0.2s, box-shadow 0.2s;
 }
 
 .card:hover {
     transform: translateY(-2px);
-    box-shadow: var(--shadow-lg);
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
 }
 
 .card-header {
@@ -267,15 +270,16 @@ main {
 }
 
 .card-title {
-    font-size: 18px;
-    font-weight: 600;
-    color: var(--text);
+    color: #1F2937;
+    font-size: 20px;
+    font-weight: 700;
+    margin-bottom: 8px;
 }
 
 .card-description {
+    color: #6B7280;
     font-size: 14px;
-    color: var(--text-light);
-    margin-bottom: 15px;
+    margin-bottom: 12px;
 }
 
 .card-meta {

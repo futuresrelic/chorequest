@@ -57,6 +57,8 @@
           <button class="tab-btn" data-tab="quests">Quests</button>
            <button class="tab-btn" data-tab="rewards">Rewards</button>
            <button class="tab-btn" data-tab="submissions">Submissions</button>
+           <button class="tab-btn" data-tab="quest-tasks">Quest Tasks</button>
+           <button class="tab-btn" data-tab="themes">Themes</button>
            <button class="tab-btn" data-tab="redemptions">Redemptions</button>
            <button class="tab-btn" data-tab="families">Families</button>
            <button class="tab-btn" data-tab="settings">Settings</button>
@@ -150,6 +152,30 @@
                     <button class="filter-btn" data-status="rejected">Rejected</button>
                 </div>
                 <div id="submissions-list" class="list-container"></div>
+            </section>
+
+            <!-- Quest Tasks Tab -->
+            <section id="tab-quest-tasks" class="tab-content">
+                <div class="tab-header">
+                    <h2>Quest Task Submissions</h2>
+                    <div class="filter-buttons">
+                        <button class="filter-btn filter-btn-quest-task active" data-status="pending">Pending</button>
+                        <button class="filter-btn filter-btn-quest-task" data-status="approved">Approved</button>
+                        <button class="filter-btn filter-btn-quest-task" data-status="rejected">Rejected</button>
+                    </div>
+                </div>
+                <div id="quest-tasks-list" class="list-container">
+                    <p>Loading...</p>
+                </div>
+            </section>
+
+            <!-- Themes Tab -->
+            <section id="tab-themes" class="tab-content">
+                <div class="section-header">
+                    <h2>Theme Editor</h2>
+                    <p style="color: #6B7280; margin-top: 5px;">Customize the look and feel of themes for kids</p>
+                </div>
+                <div id="themes-list" class="list-container"></div>
             </section>
 
             <!-- Redemptions Tab -->

@@ -95,13 +95,19 @@ async function loadTabData(tabName) {
             await loadRewards();
             break;
         case 'submissions':
-            await loadSubmissions(currentSubmissionsStatus);
+            await loadSubmissions('pending');
+            break;
+        case 'quest-tasks':  // ← ADD THIS
+            await loadQuestTaskSubmissions('pending');
+            break;
+        case 'themes':
+            await loadThemes();
             break;
         case 'redemptions':
-            await loadRedemptions(currentRedemptionsStatus);
+            await loadRedemptions('pending');
             break;
-        case 'admins':
-            await loadAdmins();
+        case 'setup-wizard':
+            loadWizard();
             break;
     }
 }
@@ -800,6 +806,397 @@ async function deleteQuestTask(taskId, questId, questTitle) {
     }
 }
 
+// Quest Task Submissions
+let currentQuestTaskStatus = 'pending';
+
+async function loadQuestTaskSubmissions(status) {
+    console.log('Loading quest task submissions with status:', status);
+    currentQuestTaskStatus = status;
+    
+    const result = await apiCall('list_quest_task_submissions', { status });
+    
+    console.log('Quest task submissions API result:', result);
+    
+    if (result.ok) {
+        console.log('Quest task submissions data:', result.data);
+        
+        if (!result.data || result.data.length === 0) {
+            document.getElementById('quest-tasks-list').innerHTML = `<p>No ${status} quest task submissions</p>`;
+            return;
+        }
+        
+        const html = result.data.map(task => `
+            <div class="list-item">
+                <div class="list-item-info">
+                    <h4>${task.kid_name} - ${task.quest_title}</h4>
+                    <p><strong>Task:</strong> ${task.task_title} (${task.points} points)</p>
+                    ${task.note ? `<p><em>"${task.note}"</em></p>` : ''}
+                    <p>Submitted: ${formatDate(task.submitted_at)}</p>
+                    ${task.status !== 'pending' ? `<p>Reviewed: ${formatDate(task.reviewed_at)}</p>` : ''}
+                </div>
+                <div class="list-item-actions">
+                    ${task.status === 'pending' ? `
+                        <button class="success-btn small-btn" onclick="reviewQuestTask(${task.id}, 'approved')">Approve</button>
+                        <button class="danger-btn small-btn" onclick="reviewQuestTask(${task.id}, 'rejected')">Reject</button>
+                    ` : `
+                        <span class="badge badge-${task.status === 'approved' ? 'success' : 'danger'}">${task.status.toUpperCase()}</span>
+                    `}
+                </div>
+            </div>
+        `).join('');
+        
+        document.getElementById('quest-tasks-list').innerHTML = html;
+    } else {
+        console.error('Quest task submissions API error:', result.error);
+        document.getElementById('quest-tasks-list').innerHTML = `<p style="color: red;">Error: ${result.error}</p>`;
+    }
+}
+
+async function reviewQuestTask(statusId, status) {
+    if (!confirm(`${status === 'approved' ? 'Approve' : 'Reject'} this quest task?`)) return;
+    
+    const result = await apiCall('review_quest_task', {
+        status_id: statusId,
+        status: status
+    });
+    
+    if (result.ok) {
+        showSuccess(`Quest task ${status}`);
+        loadQuestTaskSubmissions(currentQuestTaskStatus);
+        loadDashboard(); // Refresh dashboard stats
+    } else {
+        showError(result.error);
+    }
+}
+
+// Themes
+// Themes
+async function loadThemes() {
+    const result = await apiCall('list_themes');
+    if (result.ok) {
+        const container = document.getElementById('themes-list');
+        container.innerHTML = '';
+        
+        result.data.forEach(theme => {
+            const themeCard = document.createElement('div');
+            themeCard.className = 'list-item';
+            themeCard.style.cssText = `border-left: 5px solid ${theme.accent_color}; background: ${theme.bg_gradient};`;
+            
+            themeCard.innerHTML = `
+                <div class="list-item-info" style="color: ${theme.text_color};">
+                    <h4 style="color: ${theme.text_color};">${theme.name}</h4>
+                    <p style="color: ${theme.text_color}; opacity: 0.9;">
+                        Border: ${theme.border_width} ${theme.border_style} • 
+                        Radius: ${theme.border_radius} • 
+                        Font: ${theme.font_family}
+                    </p>
+                </div>
+                <div class="list-item-actions">
+                    <button class="secondary-btn small-btn edit-theme-btn">Edit</button>
+                </div>
+            `;
+            
+            // Attach click handler with proper closure
+            const editBtn = themeCard.querySelector('.edit-theme-btn');
+            editBtn.addEventListener('click', () => {
+                editTheme(theme.id, theme);
+            });
+            
+            container.appendChild(themeCard);
+        });
+        
+        if (result.data.length === 0) {
+            container.innerHTML = '<p>No themes found</p>';
+        }
+    }
+}
+
+function editTheme(themeId, themeData) {
+    const theme = typeof themeData === 'string' ? JSON.parse(themeData) : themeData;
+    
+    // Helper function
+    function hexToRgb(hex) {
+        const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+        return result ? 
+            `${parseInt(result[1], 16)}, ${parseInt(result[2], 16)}, ${parseInt(result[3], 16)}` : 
+            '255, 255, 255';
+    }
+    
+    const cardBgRgb = hexToRgb(theme.card_bg_color || '#FFFFFF');
+    const cardOpacity = theme.card_opacity || 0.95;
+    
+    openModal(`
+        <h3>Edit Theme: ${theme.name}</h3>
+        <div style="max-height: 70vh; overflow-y: auto; padding-right: 10px;">
+            
+            <!-- Theme Name -->
+            <div style="margin-bottom: 15px;">
+                <label style="display: block; margin-bottom: 5px; font-weight: 600;">Theme Name</label>
+                <input type="text" id="theme-name" value="${theme.name}" style="width: 100%; padding: 8px; border-radius: 8px; border: 1px solid #ddd;">
+            </div>
+            
+            <!-- Colors -->
+            <h4 style="margin: 20px 0 10px 0;">Colors</h4>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px;">
+                <div>
+                    <label style="display: block; margin-bottom: 5px;">Background</label>
+                    <input type="color" id="theme-bg-color" value="${theme.bg_color}" style="width: 100%; height: 40px;">
+                </div>
+                <div>
+                    <label style="display: block; margin-bottom: 5px;">Text Color</label>
+                    <input type="color" id="theme-text-color" value="${theme.text_color}" style="width: 100%; height: 40px;">
+                </div>
+                <div>
+                    <label style="display: block; margin-bottom: 5px;">Accent Color</label>
+                    <input type="color" id="theme-accent-color" value="${theme.accent_color}" style="width: 100%; height: 40px;">
+                </div>
+            </div>
+            
+            <div style="margin-bottom: 15px;">
+                <label style="display: block; margin-bottom: 5px;">Background Gradient (CSS)</label>
+                <input type="text" id="theme-gradient" value="${theme.bg_gradient}" style="width: 100%; padding: 8px; border-radius: 8px; border: 1px solid #ddd;">
+            </div>
+            
+            <!-- Card Settings -->
+            <h4 style="margin: 20px 0 10px 0;">Card Settings</h4>
+            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 15px;">
+                <div>
+                    <label style="display: block; margin-bottom: 5px;">Card Color</label>
+                    <input type="color" id="theme-card-bg" value="${theme.card_bg_color || '#FFFFFF'}" style="width: 100%; height: 40px;">
+                </div>
+                <div>
+                    <label style="display: block; margin-bottom: 5px;">Opacity</label>
+                    <input type="number" id="theme-card-opacity" value="${theme.card_opacity || 0.95}" min="0" max="1" step="0.05" style="width: 100%; padding: 8px;">
+                </div>
+                <div>
+                    <label style="display: block; margin-bottom: 5px;">Blur (px)</label>
+                    <input type="number" id="theme-card-blur" value="${theme.card_blur || 10}" min="0" max="50" style="width: 100%; padding: 8px;">
+                </div>
+            </div>
+            
+            <div style="margin-bottom: 15px;">
+                <label style="display: block; margin-bottom: 5px;">Card Shadow (CSS)</label>
+                <input type="text" id="theme-card-shadow" value="${theme.card_shadow || '0 8px 32px rgba(0,0,0,0.1)'}" style="width: 100%; padding: 8px; border-radius: 8px; border: 1px solid #ddd;">
+            </div>
+            
+            <!-- Header Settings -->
+            <h4 style="margin: 20px 0 10px 0;">Header Settings</h4>
+            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 15px;">
+                <div>
+                    <label style="display: block; margin-bottom: 5px;">Header Color</label>
+                    <input type="color" id="theme-header-bg" value="${theme.header_bg_color || '#FFFFFF'}" style="width: 100%; height: 40px;">
+                </div>
+                <div>
+                    <label style="display: block; margin-bottom: 5px;">Opacity</label>
+                    <input type="number" id="theme-header-opacity" value="${theme.header_opacity || 0.85}" min="0" max="1" step="0.05" style="width: 100%; padding: 8px;">
+                </div>
+                <div>
+                    <label style="display: block; margin-bottom: 5px;">Blur (px)</label>
+                    <input type="number" id="theme-header-blur" value="${theme.header_blur || 20}" min="0" max="50" style="width: 100%; padding: 8px;">
+                </div>
+            </div>
+            
+            <!-- Nav Settings -->
+            <h4 style="margin: 20px 0 10px 0;">Navigation Settings</h4>
+            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 15px;">
+                <div>
+                    <label style="display: block; margin-bottom: 5px;">Nav Color</label>
+                    <input type="color" id="theme-nav-bg" value="${theme.nav_bg_color || '#FFFFFF'}" style="width: 100%; height: 40px;">
+                </div>
+                <div>
+                    <label style="display: block; margin-bottom: 5px;">Opacity</label>
+                    <input type="number" id="theme-nav-opacity" value="${theme.nav_opacity || 0.95}" min="0" max="1" step="0.05" style="width: 100%; padding: 8px;">
+                </div>
+                <div>
+                    <label style="display: block; margin-bottom: 5px;">Blur (px)</label>
+                    <input type="number" id="theme-nav-blur" value="${theme.nav_blur || 20}" min="0" max="50" style="width: 100%; padding: 8px;">
+                </div>
+            </div>
+            
+            <!-- Border & Font -->
+            <h4 style="margin: 20px 0 10px 0;">Border & Typography</h4>
+            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 15px;">
+                <div>
+                    <label style="display: block; margin-bottom: 5px;">Border Style</label>
+                    <select id="theme-border-style" style="width: 100%; padding: 8px;">
+                        <option value="solid" ${theme.border_style === 'solid' ? 'selected' : ''}>Solid</option>
+                        <option value="dashed" ${theme.border_style === 'dashed' ? 'selected' : ''}>Dashed</option>
+                        <option value="dotted" ${theme.border_style === 'dotted' ? 'selected' : ''}>Dotted</option>
+                        <option value="double" ${theme.border_style === 'double' ? 'selected' : ''}>Double</option>
+                    </select>
+                </div>
+                <div>
+                    <label style="display: block; margin-bottom: 5px;">Width</label>
+                    <input type="text" id="theme-border-width" value="${theme.border_width}" style="width: 100%; padding: 8px;">
+                </div>
+                <div>
+                    <label style="display: block; margin-bottom: 5px;">Radius</label>
+                    <input type="text" id="theme-border-radius" value="${theme.border_radius}" style="width: 100%; padding: 8px;">
+                </div>
+            </div>
+            
+            <div style="margin-bottom: 15px;">
+                <label style="display: block; margin-bottom: 5px;">Font Family</label>
+                <select id="theme-font-family" style="width: 100%; padding: 8px;">
+                    <option value="Quicksand" ${theme.font_family === 'Quicksand' ? 'selected' : ''}>Quicksand</option>
+                    <option value="Poppins" ${theme.font_family === 'Poppins' ? 'selected' : ''}>Poppins</option>
+                    <option value="Nunito" ${theme.font_family === 'Nunito' ? 'selected' : ''}>Nunito</option>
+                    <option value="Roboto" ${theme.font_family === 'Roboto' ? 'selected' : ''}>Roboto</option>
+                    <option value="Comic Neue" ${theme.font_family === 'Comic Neue' ? 'selected' : ''}>Comic Neue</option>
+                    <option value="Russo One" ${theme.font_family === 'Russo One' ? 'selected' : ''}>Russo One</option>
+                    <option value="Orbitron" ${theme.font_family === 'Orbitron' ? 'selected' : ''}>Orbitron</option>
+                    <option value="Fredoka One" ${theme.font_family === 'Fredoka One' ? 'selected' : ''}>Fredoka One</option>
+                    <option value="Press Start 2P" ${theme.font_family === 'Press Start 2P' ? 'selected' : ''}>Press Start 2P</option>
+                </select>
+            </div>
+            
+            <!-- Button Gradient -->
+            <h4 style="margin: 20px 0 10px 0;">Button Styling</h4>
+            <div style="margin-bottom: 15px;">
+                <label style="display: block; margin-bottom: 5px;">Button Gradient (CSS) - Optional</label>
+                <input type="text" id="theme-button-gradient" value="${theme.button_gradient || ''}" placeholder="linear-gradient(135deg, #4F46E5 0%, #3B82F6 100%)" style="width: 100%; padding: 8px; border-radius: 8px; border: 1px solid #ddd;">
+            </div>
+            
+            <!-- Animation -->
+            <h4 style="margin: 20px 0 10px 0;">Animation</h4>
+            <div style="display: grid; grid-template-columns: auto 1fr; gap: 10px; align-items: center; margin-bottom: 15px;">
+                <label>
+                    <input type="checkbox" id="theme-has-animation" ${theme.has_animation ? 'checked' : ''}> Enable
+                </label>
+                <select id="theme-animation-type" style="width: 100%; padding: 8px;" ${!theme.has_animation ? 'disabled' : ''}>
+                    <option value="">None</option>
+                    <option value="stars" ${theme.animation_type === 'stars' ? 'selected' : ''}>⭐ Stars</option>
+                    <option value="bubbles" ${theme.animation_type === 'bubbles' ? 'selected' : ''}>🫧 Bubbles</option>
+                    <option value="snowflakes" ${theme.animation_type === 'snowflakes' ? 'selected' : ''}>❄️ Snowflakes</option>
+                    <option value="embers" ${theme.animation_type === 'embers' ? 'selected' : ''}>🔥 Embers</option>
+                    <option value="sparkles" ${theme.animation_type === 'sparkles' ? 'selected' : ''}>✨ Sparkles</option>
+                    <option value="sand" ${theme.animation_type === 'sand' ? 'selected' : ''}>🏜️ Sand Blowing</option>
+                    <option value="aurora" ${theme.animation_type === 'aurora' ? 'selected' : ''}>🌌 Aurora Borealis</option>
+                    <option value="leaves" ${theme.animation_type === 'leaves' ? 'selected' : ''}>🍃 Falling Leaves</option>
+                    <option value="candy" ${theme.animation_type === 'candy' ? 'selected' : ''}>🍬 Candy Sprinkles</option>
+                    <option value="retro" ${theme.animation_type === 'retro' ? 'selected' : ''}>👾 8-Bit Sprites</option>
+                    <option value="birds" ${theme.animation_type === 'birds' ? 'selected' : ''}>🦅 Flying Birds</option>
+                </select>
+            </div>
+            
+            <!-- Preview -->
+            <h4 style="margin: 20px 0 10px 0;">Preview</h4>
+            <div id="theme-preview" style="padding: 20px; background: ${theme.bg_gradient}; border-radius: 12px; margin-bottom: 15px;">
+                <div style="background: rgba(${cardBgRgb}, ${cardOpacity}); padding: 15px; border-radius: 12px; backdrop-filter: blur(${theme.card_blur || 10}px);">
+                    <h3 style="margin: 0; color: #1F2937;">Sample Card</h3>
+                    <p style="margin: 10px 0 0 0; color: #6B7280;">Preview of card styling</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="modal-actions">
+            <button class="secondary-btn" onclick="closeModal()">Cancel</button>
+            <button class="primary-btn" onclick="saveTheme(${themeId})">Save Theme</button>
+        </div>
+    `);
+    
+    // Animation checkbox handler
+    const animCheckbox = document.getElementById('theme-has-animation');
+    const animDropdown = document.getElementById('theme-animation-type');
+    if (animCheckbox && animDropdown) {
+        animCheckbox.addEventListener('change', () => {
+            animDropdown.disabled = !animCheckbox.checked;
+        });
+    }
+    
+    // Live preview on any input change
+    document.querySelectorAll('#theme-gradient, #theme-card-bg, #theme-card-opacity, #theme-card-blur').forEach(el => {
+        if (el) {
+            el.addEventListener('input', updateThemePreviewSimple);
+        }
+    });
+}
+
+function updateThemePreviewSimple() {
+    const preview = document.getElementById('theme-preview');
+    if (!preview) return;
+    
+    const gradient = document.getElementById('theme-gradient')?.value;
+    const cardBg = document.getElementById('theme-card-bg')?.value || '#FFFFFF';
+    const cardOpacity = document.getElementById('theme-card-opacity')?.value || 0.95;
+    const cardBlur = document.getElementById('theme-card-blur')?.value || 10;
+    
+    if (gradient) preview.style.background = gradient;
+    
+    const card = preview.querySelector('div');
+    if (card && cardBg) {
+        const rgb = cardBg.match(/\w\w/g)?.map(x => parseInt(x, 16)).join(', ') || '255, 255, 255';
+        card.style.background = `rgba(${rgb}, ${cardOpacity})`;
+        card.style.backdropFilter = `blur(${cardBlur}px)`;
+    }
+}
+
+async function saveTheme(themeId) {
+    const name = document.getElementById('theme-name').value.trim();
+    const bgColor = document.getElementById('theme-bg-color').value;
+    const bgGradient = document.getElementById('theme-gradient').value.trim();
+    const textColor = document.getElementById('theme-text-color').value;
+    const accentColor = document.getElementById('theme-accent-color').value;
+    const borderStyle = document.getElementById('theme-border-style').value;
+    const borderWidth = document.getElementById('theme-border-width').value.trim();
+    const borderRadius = document.getElementById('theme-border-radius').value.trim();
+    const fontFamily = document.getElementById('theme-font-family').value;
+    const hasAnimation = document.getElementById('theme-has-animation').checked ? 1 : 0;
+    const animationType = document.getElementById('theme-animation-type').value;
+    
+    // New CSS controls
+    const cardBgColor = document.getElementById('theme-card-bg').value;
+    const cardOpacity = parseFloat(document.getElementById('theme-card-opacity').value);
+    const cardBlur = parseInt(document.getElementById('theme-card-blur').value);
+    const cardShadow = document.getElementById('theme-card-shadow').value.trim();
+    const headerBgColor = document.getElementById('theme-header-bg').value;
+    const headerOpacity = parseFloat(document.getElementById('theme-header-opacity').value);
+    const headerBlur = parseInt(document.getElementById('theme-header-blur').value);
+    const navBgColor = document.getElementById('theme-nav-bg').value;
+    const navOpacity = parseFloat(document.getElementById('theme-nav-opacity').value);
+    const navBlur = parseInt(document.getElementById('theme-nav-blur').value);
+    const buttonGradient = document.getElementById('theme-button-gradient').value.trim();
+    
+    if (!name) {
+        showError('Theme name is required');
+        return;
+    }
+    
+    const result = await apiCall('update_theme', {
+        theme_id: themeId,
+        name: name,
+        bg_color: bgColor,
+        bg_gradient: bgGradient,
+        text_color: textColor,
+        accent_color: accentColor,
+        border_style: borderStyle,
+        border_width: borderWidth,
+        border_radius: borderRadius,
+        font_family: fontFamily,
+        has_animation: hasAnimation,
+        animation_type: animationType,
+        card_bg_color: cardBgColor,
+        card_opacity: cardOpacity,
+        card_blur: cardBlur,
+        card_shadow: cardShadow,
+        header_bg_color: headerBgColor,
+        header_opacity: headerOpacity,
+        header_blur: headerBlur,
+        nav_bg_color: navBgColor,
+        nav_opacity: navOpacity,
+        nav_blur: navBlur,
+        button_gradient: buttonGradient
+    });
+    
+    if (result.ok) {
+        closeModal();
+        showSuccess('Theme updated!');
+        loadThemes();
+    } else {
+        showError(result.error);
+    }
+}
+
 // Rewards
 async function loadRewards() {
     const result = await apiCall('list_rewards');
@@ -914,6 +1311,15 @@ window.addEventListener('click', (e) => {
     }
 });
 
+// Add quest task filter buttons
+document.querySelectorAll('.filter-btn-quest-task').forEach(btn => {
+    btn.addEventListener('click', () => {
+        document.querySelectorAll('.filter-btn-quest-task').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        loadQuestTaskSubmissions(btn.dataset.status);
+    });
+});
+
 // Add this after the submissions filter buttons
 document.querySelectorAll('.filter-btn-redemption').forEach(btn => {
     btn.addEventListener('click', () => {
@@ -922,6 +1328,8 @@ document.querySelectorAll('.filter-btn-redemption').forEach(btn => {
         loadRedemptions(btn.dataset.status);
     });
 });
+
+
 
 // Redemptions
 let currentRedemptionsStatus = 'pending';
