@@ -52,6 +52,7 @@
 
         <nav class="tabs">
             <button class="tab-btn active" data-tab="dashboard">Dashboard</button>
+            <button class="tab-btn" data-tab="family-board">📊 Family Board</button>
             <button class="tab-btn" data-tab="kids">Kids</button>
           <button class="tab-btn" data-tab="chores">Chores</button>
           <button class="tab-btn" data-tab="quests">Quests</button>
@@ -101,6 +102,36 @@
                 </div>
             </section>
 
+            <!-- Family Board Tab -->
+            <section id="tab-family-board" class="tab-content">
+                <div class="section-header">
+                    <h2>📊 Family Board</h2>
+                    <p style="color: #6B7280; margin-top: 5px;">Visual overview for family meetings & economy balancing</p>
+                </div>
+                
+                <!-- Point Economy Analysis -->
+                <div style="background: #F3F4F6; padding: 20px; border-radius: 16px; margin-bottom: 30px;">
+                    <h3 style="margin: 0 0 15px 0;">💰 Point Economy Overview</h3>
+                    <div id="economy-stats" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;"></div>
+                </div>
+                
+                <!-- Kids Status -->
+                <h3 style="margin: 30px 0 15px 0;">👨‍👩‍👧‍👦 Kids & Points</h3>
+                <div id="family-kids-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 15px; margin-bottom: 40px;"></div>
+                
+                <!-- Earnings Chart -->
+                <h3 style="margin: 30px 0 15px 0;">📈 Point Earnings (Last 30 Days)</h3>
+                <div id="earnings-chart" style="background: white; padding: 20px; border-radius: 16px; margin-bottom: 40px;"></div>
+                
+                <!-- Rewards Shop with Analysis -->
+                <h3 style="margin: 30px 0 15px 0;">🎁 Rewards Shop (Economy Check)</h3>
+                <div id="family-rewards-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; margin-bottom: 40px;"></div>
+                
+                <!-- Active Quests with ROI -->
+                <h3 style="margin: 30px 0 15px 0;">⭐ Active Quests (Total Value Analysis)</h3>
+                <div id="family-quests-list" style="display: flex; flex-direction: column; gap: 20px;"></div>
+            </section>
+
             <!-- Kids Tab -->
             <section id="tab-kids" class="tab-content">
                 <div class="section-header">
@@ -109,12 +140,16 @@
                 </div>
                 <div id="kids-list" class="list-container"></div>
 
-                <h3 style="margin-top: 40px;">Pairing Codes</h3>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 40px;">
+                    <h3>Pairing Codes</h3>
+                    <button id="clear-unpaired-btn" class="secondary-btn" style="font-size: 14px;">🧹 Clear Unpaired</button>
+                </div>
                 <div id="pairing-codes-list" class="list-container"></div>
-
-                <h3 style="margin-top: 40px;">Paired Devices</h3>
-                <div id="devices-list" class="list-container"></div>
-            </section>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 40px;">
+                    <h3>Paired Devices</h3>
+                    <button id="clear-stale-btn" class="secondary-btn" style="font-size: 14px;">🧹 Clear Stale Devices</button>
+                </div>
+                <div id="devices-list" class="list-container"></div>            </section>
 
             <!-- Chores Tab -->
             <section id="tab-chores" class="tab-content">

@@ -80,6 +80,9 @@ async function loadTabData(tabName) {
         case 'dashboard':
             await loadDashboard();
             break;
+        case 'family-board':
+            await loadFamilyBoard();
+            break;
         case 'kids':
             await loadKids();
             await loadPairingCodes();
@@ -211,10 +214,15 @@ async function loadKids() {
         const html = result.data.map(kid => `
             <div class="list-item">
                 <div class="list-item-info">
-                    <h4>${kid.kid_name}</h4>
-                    <p>${kid.total_points} points • ${kid.chore_count} chores • ${kid.device_count} device(s)</p>
+                    <h4>
+                        ${kid.kid_name} 
+                        ${kid.is_test_account ? '<span style="background: #FEF3C7; color: #92400E; padding: 2px 8px; border-radius: 4px; font-size: 12px; margin-left: 8px;">TEST</span>' : ''}
+                    </h4>
+                    <p>${kid.total_points} points • ${kid.device_count} device(s) • ${kid.chore_count} chore(s)</p>
+                    <p>Created: ${formatDate(kid.created_at)}</p>
                 </div>
                 <div class="list-item-actions">
+                    <button class="secondary-btn small-btn" onclick="manageKid(${kid.id}, '${kid.kid_name}', ${kid.is_test_account})">Manage</button>
                     <button class="secondary-btn small-btn" onclick="generatePairingCode(${kid.id})">Get Code</button>
                     <button class="secondary-btn small-btn" onclick="viewKidChores(${kid.id}, '${kid.kid_name}')">Chores</button>
                     <button class="danger-btn small-btn" onclick="deleteKid(${kid.id})">Delete</button>
@@ -260,6 +268,80 @@ async function deleteKid(kidId) {
     if (result.ok) {
         showSuccess('Kid deleted');
         loadKids();
+    } else {
+        showError(result.error);
+    }
+}
+
+function manageKid(kidId, kidName, isTestAccount) {
+    openModal(`
+        <h3>Manage: ${kidName}</h3>
+        
+        <div style="background: #F3F4F6; padding: 15px; border-radius: 12px; margin: 20px 0;">
+            <h4 style="margin: 0 0 10px 0;">Test Account Mode</h4>
+            <p style="font-size: 13px; color: #6B7280; margin-bottom: 15px;">
+                Test accounts are excluded from Family Board analytics and statistics.
+            </p>
+            <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+                <input type="checkbox" id="test-mode-toggle" ${isTestAccount ? 'checked' : ''} 
+                    style="width: 20px; height: 20px;">
+                <span style="font-weight: 600;">Mark as Test Account</span>
+            </label>
+        </div>
+        
+        <div style="background: #FEF3C7; padding: 15px; border-radius: 12px; margin: 20px 0;">
+            <h4 style="margin: 0 0 10px 0; color: #92400E;">⚠️ Reset Points</h4>
+            <p style="font-size: 13px; color: #92400E; margin-bottom: 15px;">
+                Choose what to reset for this kid:
+            </p>
+            <button class="secondary-btn" style="width: 100%; margin-bottom: 10px;" 
+                onclick="resetKidPoints(${kidId}, '${kidName}', false)">
+                Reset Points Only
+            </button>
+            <button class="danger-btn" style="width: 100%;" 
+                onclick="resetKidPoints(${kidId}, '${kidName}', true)">
+                Reset Everything (Points + History)
+            </button>
+        </div>
+        
+        <div class="modal-actions">
+            <button class="secondary-btn" onclick="closeModal()">Cancel</button>
+            <button class="primary-btn" onclick="saveKidSettings(${kidId})">Save Settings</button>
+        </div>
+    `);
+}
+
+async function saveKidSettings(kidId) {
+    const isTest = document.getElementById('test-mode-toggle').checked;
+    
+    const result = await apiCall('toggle_kid_test_mode', { kid_id: kidId });
+    
+    if (result.ok) {
+        closeModal();
+        showSuccess('Settings saved');
+        loadKids();
+    } else {
+        showError(result.error);
+    }
+}
+
+async function resetKidPoints(kidId, kidName, clearHistory) {
+    const message = clearHistory
+        ? `Reset ALL data for ${kidName}?\n\nThis will delete:\n• All points\n• Submission history\n• Redemption history\n• Quest progress\n• Streaks\n• Game scores\n\nTHIS CANNOT BE UNDONE!`
+        : `Reset points to 0 for ${kidName}?\n\nHistory will be preserved.`;
+    
+    if (!confirm(message)) return;
+    
+    const result = await apiCall('reset_kid_points', {
+        kid_id: kidId,
+        clear_history: clearHistory ? 1 : 0
+    });
+    
+    if (result.ok) {
+        closeModal();
+        showSuccess(result.data.message);
+        loadKids();
+        loadDashboard();
     } else {
         showError(result.error);
     }
@@ -327,6 +409,80 @@ async function revokeDevice(deviceId) {
         showError(result.error);
     }
 }
+
+async function clearUnpairedCodes() {
+    const result = await apiCall('list_pairing_codes');
+    if (!result.ok || result.data.length === 0) {
+        alert('No unpaired codes to clear');
+        return;
+    }
+    
+    if (!confirm(`Clear ${result.data.length} unpaired pairing code(s)?`)) return;  // ← FIXED: Added opening (
+    
+    const clearResult = await apiCall('clear_unpaired_codes');
+    if (clearResult.ok) {
+        showSuccess(clearResult.data.message);
+        loadPairingCodes();
+    } else {
+        showError(clearResult.error);
+    }
+}
+
+async function clearStaleDevices() {
+    console.log('🧹 clearStaleDevices() called');
+    
+    // Ask how many days
+    const days = prompt('Clear devices not seen in how many days?\n\nRecommended: 30 days\n\nEnter number:', '30');
+    console.log('User entered days:', days);
+    
+    if (!days || isNaN(days)) {
+        console.log('Invalid days input, aborting');
+        return;
+    }
+    
+    const daysNum = parseInt(days);
+    if (daysNum < 1) {
+        alert('Please enter a valid number of days');
+        return;
+    }
+    
+    console.log('Calling API with days:', daysNum);
+    
+    // Show confirmation
+    const message = daysNum === 1 
+        ? `Clear devices not seen in the last 24 hours?`
+        : `Clear devices not seen in the last ${daysNum} days?`;
+    
+    if (!confirm(message + '\n\nThis will remove old/unused paired devices.\n\nActive devices will NOT be affected.')) {
+        console.log('User cancelled');
+        return;
+    }
+    
+    console.log('User confirmed, calling clear_stale_devices API...');
+    const result = await apiCall('clear_stale_devices', { days: daysNum });
+    console.log('API result:', result);
+    
+    if (result.ok) {
+        if (result.data.count === 0) {
+            alert('No stale devices found! All devices are active.');
+        } else {
+            const deviceList = result.data.devices.map(d => 
+                `  • ${d.kid_name} - ${d.device_label} (last seen: ${d.last_seen_at || 'never'})`
+            ).join('\n');
+            
+            alert(`${result.data.message}\n\nRemoved:\n${deviceList}`);  // ← FIXED: Added opening (
+        }
+        loadDevices();
+        loadPairingCodes();
+    } else {
+        console.error('API error:', result.error);
+        alert('Error: ' + (result.error || 'Unknown error'));
+    }
+}
+
+// Attach button listeners (only once, no duplicates)
+document.getElementById('clear-unpaired-btn')?.addEventListener('click', clearUnpairedCodes);
+document.getElementById('clear-stale-btn')?.addEventListener('click', clearStaleDevices);
 
 // Chores Management
 async function loadChores() {
@@ -814,14 +970,17 @@ async function loadQuestTaskSubmissions(status) {
     currentQuestTaskStatus = status;
     
     const result = await apiCall('list_quest_task_submissions', { status });
-    
     console.log('Quest task submissions API result:', result);
     
+    const container = document.getElementById('quest-tasks-list');
+    if (!container) {
+        console.error('quest-tasks-list container not found!');
+        return;
+    }
+    
     if (result.ok) {
-        console.log('Quest task submissions data:', result.data);
-        
         if (!result.data || result.data.length === 0) {
-            document.getElementById('quest-tasks-list').innerHTML = `<p>No ${status} quest task submissions</p>`;
+            container.innerHTML = `<p>No ${status} quest task submissions</p>`;
             return;
         }
         
@@ -845,10 +1004,10 @@ async function loadQuestTaskSubmissions(status) {
             </div>
         `).join('');
         
-        document.getElementById('quest-tasks-list').innerHTML = html;
+        container.innerHTML = html;
     } else {
         console.error('Quest task submissions API error:', result.error);
-        document.getElementById('quest-tasks-list').innerHTML = `<p style="color: red;">Error: ${result.error}</p>`;
+        container.innerHTML = `<p style="color: red;">Error: ${result.error || 'Unknown error'}</p>`;
     }
 }
 
@@ -870,11 +1029,18 @@ async function reviewQuestTask(statusId, status) {
 }
 
 // Themes
-// Themes
 async function loadThemes() {
+    console.log('Loading themes...');
     const result = await apiCall('list_themes');
+    console.log('Themes API result:', result);
+    
     if (result.ok) {
         const container = document.getElementById('themes-list');
+        if (!container) {
+            console.error('themes-list container not found!');
+            return;
+        }
+        
         container.innerHTML = '';
         
         result.data.forEach(theme => {
@@ -896,7 +1062,7 @@ async function loadThemes() {
                 </div>
             `;
             
-            // Attach click handler with proper closure
+            // Attach click handler
             const editBtn = themeCard.querySelector('.edit-theme-btn');
             editBtn.addEventListener('click', () => {
                 editTheme(theme.id, theme);
@@ -907,6 +1073,12 @@ async function loadThemes() {
         
         if (result.data.length === 0) {
             container.innerHTML = '<p>No themes found</p>';
+        }
+    } else {
+        console.error('Themes API error:', result.error);
+        const container = document.getElementById('themes-list');
+        if (container) {
+            container.innerHTML = `<p style="color: red;">Error loading themes: ${result.error || 'Unknown error'}</p>`;
         }
     }
 }
@@ -1599,6 +1771,184 @@ function resetWizard() {
 
 // Load wizard when setup tab is clicked
 document.querySelector('[data-tab="setup-wizard"]')?.addEventListener('click', loadWizard);
+
+// Family Board
+async function loadFamilyBoard() {
+    // Load all data
+    const kidsResult = await apiCall('list_kids');
+    const rewardsResult = await apiCall('list_rewards');
+    const questsResult = await apiCall('list_quests');
+    const analyticsResult = await apiCall('family_analytics');
+    
+    if (!analyticsResult.ok || !kidsResult.ok) {
+        document.getElementById('family-kids-grid').innerHTML = '<p>Error loading data</p>';
+        return;
+    }
+    
+    const analytics = analyticsResult.data;
+    const kids = kidsResult.data;
+    
+    // 1. ECONOMY STATS
+    const totalPointsInCirculation = kids.reduce((sum, k) => sum + k.total_points, 0);
+    const avgWeeklyEarnings = analytics.kid_stats.length > 0 
+        ? Math.round(analytics.kid_stats.reduce((sum, k) => sum + k.week_earned, 0) / analytics.kid_stats.length)
+        : 0;
+    const avgMonthlyEarnings = analytics.kid_stats.length > 0
+        ? Math.round(analytics.kid_stats.reduce((sum, k) => sum + k.month_earned, 0) / analytics.kid_stats.length)
+        : 0;
+    
+    document.getElementById('economy-stats').innerHTML = `
+        <div class="economy-stat-card">
+            <div class="label">Total Points in System</div>
+            <div class="value">${totalPointsInCirculation}</div>
+        </div>
+        <div class="economy-stat-card">
+            <div class="label">Avg Weekly Earnings</div>
+            <div class="value">${avgWeeklyEarnings}</div>
+        </div>
+        <div class="economy-stat-card">
+            <div class="label">Avg Monthly Earnings</div>
+            <div class="value">${avgMonthlyEarnings}</div>
+        </div>
+        <div class="economy-stat-card">
+            <div class="label">Recent Redemptions (30d)</div>
+            <div class="value">${analytics.recent_redemptions.length}</div>
+        </div>
+    `;
+    
+    // 2. KIDS CARDS
+    const kidsGrid = document.getElementById('family-kids-grid');
+    kidsGrid.innerHTML = analytics.kid_stats.map(kid => `
+        <div class="family-kid-card">
+            <h3>${kid.kid_name}</h3>
+            <div class="points">${kid.total_points}</div>
+            <div style="font-size: 14px; opacity: 0.9;">current points</div>
+            <div style="margin-top: 10px; font-size: 13px; opacity: 0.8;">
+                📊 This week: +${kid.week_earned}
+            </div>
+        </div>
+    `).join('');
+    
+    // 3. EARNINGS CHART
+    const maxEarnings = Math.max(...analytics.kid_stats.map(k => k.month_earned), 1);
+    document.getElementById('earnings-chart').innerHTML = `
+        <div style="margin-bottom: 15px; color: #6B7280; font-size: 14px;">Monthly earnings comparison (last 30 days)</div>
+        ${analytics.kid_stats.map(kid => `
+            <div class="earnings-bar" style="--bar-width: ${(kid.month_earned / maxEarnings * 100)}%;">
+                <span class="name">${kid.kid_name}</span>
+                <span class="points">${kid.month_earned} pts</span>
+            </div>
+        `).join('')}
+    `;
+    
+    // 4. REWARDS WITH ANALYSIS
+    if (rewardsResult.ok) {
+        const rewardsGrid = document.getElementById('family-rewards-grid');
+        rewardsGrid.innerHTML = rewardsResult.data
+            .filter(r => r.is_active)
+            .sort((a, b) => a.cost_points - b.cost_points)
+            .map(reward => {
+                const whoCanAfford = kids.filter(k => k.total_points >= reward.cost_points).map(k => k.kid_name);
+                
+                // Calculate "days to earn" based on average
+                const daysToEarn = avgWeeklyEarnings > 0 ? Math.ceil((reward.cost_points / avgWeeklyEarnings) * 7) : 999;
+                
+                let analysisClass = 'realistic';
+                let analysisText = '';
+                
+                if (daysToEarn <= 7) {
+                    analysisClass = 'realistic';
+                    analysisText = `✅ Achievable in ~${daysToEarn} days at current rate`;
+                } else if (daysToEarn <= 30) {
+                    analysisClass = 'challenging';
+                    analysisText = `⚠️ Takes ~${daysToEarn} days to earn`;
+                } else {
+                    analysisClass = 'unrealistic';
+                    analysisText = `❌ Takes ${daysToEarn}+ days - consider lowering cost`;
+                }
+                
+                return `
+                    <div class="family-reward-card ${whoCanAfford.length > 0 ? 'affordable' : ''}">
+                        <div class="emoji">${getRewardEmoji(reward.title)}</div>
+                        <div class="title">${reward.title}</div>
+                        <div class="cost">${reward.cost_points} pts</div>
+                        ${reward.description ? `<div style="font-size: 13px; color: #6B7280; margin-top: 5px;">${reward.description}</div>` : ''}
+                        ${whoCanAfford.length > 0 ? `<div class="can-afford">✓ ${whoCanAfford.join(', ')} can afford!</div>` : ''}
+                        <div class="reward-analysis ${analysisClass}">
+                            ${analysisText}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+    }
+    
+    // 5. QUESTS WITH TOTAL VALUE
+    if (questsResult.ok) {
+        const questsList = document.getElementById('family-quests-list');
+        
+        const activeQuests = questsResult.data.filter(q => q.is_active);
+        
+        if (activeQuests.length === 0) {
+            questsList.innerHTML = '<p style="color: #6B7280; text-align: center;">No active quests</p>';
+        } else {
+            questsList.innerHTML = await Promise.all(
+                activeQuests.map(async quest => {
+                    const tasksResult = await apiCall('list_quest_tasks', { quest_id: quest.id });
+                    const totalValue = tasksResult.ok 
+                        ? tasksResult.data.reduce((sum, t) => sum + t.points, 0)
+                        : 0;
+                    
+                    const daysToComplete = avgWeeklyEarnings > 0 && totalValue > 0
+                        ? Math.ceil((totalValue / avgWeeklyEarnings) * 7)
+                        : 0;
+                    
+                    return `
+                        <div class="family-quest-card">
+                            <h4>⭐ ${quest.title}</h4>
+                            ${quest.description ? `<p style="color: #6B7280; margin: 5px 0 15px 0;">${quest.description}</p>` : ''}
+                            ${quest.target_reward ? `<p style="color: #92400E; font-weight: 600; margin-bottom: 15px;">🎯 Goal: ${quest.target_reward}</p>` : ''}
+                            
+                            ${tasksResult.ok && tasksResult.data.length > 0 ? `
+                                <div class="quest-tasks-grid">
+                                    ${tasksResult.data.map(task => `
+                                        <div class="quest-task-box">
+                                            <div style="font-weight: 600; margin-bottom: 5px;">${task.title}</div>
+                                            <div style="font-size: 18px; color: #F59E0B; font-weight: bold;">${task.points} pts</div>
+                                        </div>
+                                    `).join('')}
+                                </div>
+                                
+                                <div class="quest-value-box">
+                                    <div style="font-size: 16px; font-weight: bold; margin-bottom: 5px;">
+                                        Total Quest Value: ${totalValue} points
+                                    </div>
+                                    <div style="font-size: 13px; color: #92400E;">
+                                        ${daysToComplete > 0 ? `Equivalent to ~${daysToComplete} days of regular chores` : 'Complete all tasks to earn!'}
+                                    </div>
+                                </div>
+                            ` : '<p style="color: #6B7280; font-size: 14px;">No tasks yet</p>'}
+                        </div>
+                    `;
+                })
+            ).then(html => html.join(''));
+        }
+    }
+}
+
+function getRewardEmoji(title) {
+    const lower = title.toLowerCase();
+    if (lower.includes('phone') || lower.includes('screen')) return '📱';
+    if (lower.includes('game') || lower.includes('play')) return '🎮';
+    if (lower.includes('movie') || lower.includes('tv')) return '🎬';
+    if (lower.includes('treat') || lower.includes('candy') || lower.includes('ice cream')) return '🍦';
+    if (lower.includes('toy')) return '🧸';
+    if (lower.includes('money') || lower.includes('cash') || lower.includes('$')) return '💰';
+    if (lower.includes('bike')) return '🚲';
+    if (lower.includes('book')) return '📚';
+    if (lower.includes('pet')) return '🐶';
+    if (lower.includes('trip') || lower.includes('outing')) return '🚗';
+    return '🎁';
+}
 
 // Initialize
 (async function() {

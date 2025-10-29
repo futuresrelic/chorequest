@@ -649,3 +649,184 @@ h3 {
     font-size: 16px;
     margin: -10px 0 30px 0;
 }
+
+/* Family Board Styles */
+.family-kid-card {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 20px;
+    border-radius: 16px;
+    text-align: center;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+.family-kid-card h3 {
+    margin: 0 0 10px 0;
+    font-size: 20px;
+}
+
+.family-kid-card .points {
+    font-size: 36px;
+    font-weight: bold;
+    margin: 10px 0;
+}
+
+.family-reward-card {
+    background: white;
+    border: 3px solid #e5e7eb;
+    border-radius: 16px;
+    padding: 20px;
+    text-align: center;
+    transition: transform 0.2s;
+}
+
+.family-reward-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+}
+
+.family-reward-card.affordable {
+    border-color: #10B981;
+    background: linear-gradient(135deg, #D1FAE5 0%, #A7F3D0 100%);
+}
+
+.family-reward-card .emoji {
+    font-size: 48px;
+    margin-bottom: 10px;
+}
+
+.family-reward-card .cost {
+    font-size: 28px;
+    font-weight: bold;
+    color: #4F46E5;
+    margin: 10px 0;
+}
+
+.family-reward-card .title {
+    font-size: 18px;
+    font-weight: 600;
+    margin-bottom: 5px;
+}
+
+.family-reward-card .can-afford {
+    margin-top: 10px;
+    font-size: 12px;
+    color: #10B981;
+    font-weight: 600;
+}
+
+.family-quest-card {
+    background: white;
+    border: 3px solid #FCD34D;
+    border-radius: 16px;
+    padding: 25px;
+}
+
+.family-quest-card h4 {
+    font-size: 22px;
+    margin: 0 0 10px 0;
+    color: #92400E;
+}
+
+.quest-tasks-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 15px;
+    margin-top: 15px;
+}
+
+.quest-task-box {
+    background: #FEF3C7;
+    padding: 15px;
+    border-radius: 12px;
+    border: 2px solid #FCD34D;
+}
+
+.quest-task-box.completed {
+    background: #D1FAE5;
+    border-color: #10B981;
+}
+
+.economy-stat-card {
+    background: white;
+    padding: 15px;
+    border-radius: 12px;
+    text-align: center;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.economy-stat-card .label {
+    font-size: 12px;
+    color: #6B7280;
+    margin-bottom: 5px;
+}
+
+.economy-stat-card .value {
+    font-size: 28px;
+    font-weight: bold;
+    color: #4F46E5;
+}
+
+.earnings-bar {
+    background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 8px 12px;
+    border-radius: 8px;
+    margin: 5px 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    position: relative;
+    overflow: hidden;
+}
+
+.earnings-bar::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 100%;
+    background: rgba(255,255,255,0.2);
+    width: var(--bar-width);
+}
+
+.earnings-bar .name {
+    font-weight: 600;
+    z-index: 1;
+}
+
+.earnings-bar .points {
+    font-weight: bold;
+    z-index: 1;
+}
+
+.reward-analysis {
+    margin-top: 10px;
+    padding: 10px;
+    background: #F3F4F6;
+    border-radius: 8px;
+    font-size: 12px;
+}
+
+.reward-analysis.realistic {
+    background: #D1FAE5;
+    color: #065F46;
+}
+
+.reward-analysis.challenging {
+    background: #FEF3C7;
+    color: #92400E;
+}
+
+.reward-analysis.unrealistic {
+    background: #FEE2E2;
+    color: #991B1B;
+}
+
+.quest-value-box {
+    background: #FEF3C7;
+    padding: 15px;
+    border-radius: 12px;
+    margin-top: 15px;
+    border: 2px solid #FCD34D;
+}

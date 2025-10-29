@@ -4664,53 +4664,7 @@ async function saveScoreToServer(score, difficulty) {
     }
 }
 
-// ============================================
-// 🏆 LEADERBOARD
-// ============================================
 
-// Tab switching
-document.getElementById('game-play-tab').addEventListener('click', function() {
-    showGameTab('play');
-});
-
-document.getElementById('game-leaderboard-tab').addEventListener('click', function() {
-    showGameTab('leaderboard');
-    loadLeaderboard();
-});
-
-function showGameTab(tab) {
-    // Update tab styles
-    const playTab = document.getElementById('game-play-tab');
-    const leaderboardTab = document.getElementById('game-leaderboard-tab');
-    
-    if (tab === 'play') {
-        playTab.style.color = '#4F46E5';
-        playTab.style.borderBottom = '3px solid #4F46E5';
-        playTab.classList.add('active');
-        
-        leaderboardTab.style.color = '#6B7280';
-        leaderboardTab.style.borderBottom = '3px solid transparent';
-        leaderboardTab.classList.remove('active');
-        
-        document.getElementById('game-play-section').style.display = 'block';
-        document.getElementById('game-leaderboard-section').style.display = 'none';
-    } else {
-        playTab.style.color = '#6B7280';
-        playTab.style.borderBottom = '3px solid transparent';
-        playTab.classList.remove('active');
-        
-        leaderboardTab.style.color = '#4F46E5';
-        leaderboardTab.style.borderBottom = '3px solid #4F46E5';
-        leaderboardTab.classList.add('active');
-        
-        document.getElementById('game-play-section').style.display = 'none';
-        document.getElementById('game-leaderboard-section').style.display = 'block';
-    }
-    
-    if (typeof playSound === 'function') {
-        playSound('click');
-    }
-}
 
 // Period filter buttons
 document.querySelectorAll('.period-btn').forEach(btn => {
@@ -5429,31 +5383,46 @@ function playMusicPad(color, isPlayerInput) {
     });
 }
 
+// Create ONE shared audio context for the music game (at the top of the music section)
+let sharedMusicAudioContext = null;
+
 function playMusicNote(frequency) {
     // Use existing beep system if available
     if (typeof playSound === 'function') {
         playSound('click');
     }
     
-    // Also try Web Audio API for actual notes
+    // Play actual musical note with proper cleanup
     try {
-        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-        const oscillator = audioContext.createOscillator();
-        const gainNode = audioContext.createGain();
+        // Create context once and reuse it
+        if (!sharedMusicAudioContext) {
+            sharedMusicAudioContext = new (window.AudioContext || window.webkitAudioContext)();
+        }
+        
+        const oscillator = sharedMusicAudioContext.createOscillator();
+        const gainNode = sharedMusicAudioContext.createGain();
         
         oscillator.connect(gainNode);
-        gainNode.connect(audioContext.destination);
+        gainNode.connect(sharedMusicAudioContext.destination);
         
         oscillator.frequency.value = frequency;
         oscillator.type = 'sine';
         
-        gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
-        gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
+        gainNode.gain.setValueAtTime(0.3, sharedMusicAudioContext.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, sharedMusicAudioContext.currentTime + 0.3);
         
-        oscillator.start(audioContext.currentTime);
-        oscillator.stop(audioContext.currentTime + 0.3);
+        oscillator.start(sharedMusicAudioContext.currentTime);
+        oscillator.stop(sharedMusicAudioContext.currentTime + 0.3);
+        
+        // Clean up after the note finishes
+        oscillator.onended = () => {
+            oscillator.disconnect();
+            gainNode.disconnect();
+        };
+        
     } catch (e) {
-        console.log('Web Audio not available, using backup sound');
+        console.log('🔇 Web Audio error (silently ignored):', e.message);
+        // Don't crash the game, just skip this note
     }
 }
 

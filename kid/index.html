@@ -130,21 +130,21 @@
 <section id="view-game" class="view">
     <div style="text-align: center; padding: 20px;">
         
-        <!-- Game Selector -->
-        <div style="display: flex; gap: 10px; margin-bottom: 20px; overflow-x: auto; padding-bottom: 10px;">
-            <button class="game-selector-btn active" data-game="stars" style="flex-shrink: 0; padding: 12px 20px; border: 2px solid #4F46E5; background: #EEF2FF; color: #4F46E5; border-radius: 16px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 8px;">
-                ⭐ Star Catcher
-            </button>
-            <button class="game-selector-btn" data-game="math" style="flex-shrink: 0; padding: 12px 20px; border: 2px solid #E5E7EB; background: white; color: #6B7280; border-radius: 16px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 8px;">
-                🧮 Math Quest
-            </button>
-            <button class="game-selector-btn" data-game="music" style="flex-shrink: 0; padding: 12px 20px; border: 2px solid #E5E7EB; background: white; color: #6B7280; border-radius: 16px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 8px;">
-                🎵 Beat Master
-            </button>
-            <button class="game-selector-btn" data-game="leaderboard" style="flex-shrink: 0; padding: 12px 20px; border: 2px solid #E5E7EB; background: white; color: #6B7280; border-radius: 16px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 8px;">
-                🏆 Leaderboard
-            </button>
-        </div>
+<!-- Game Selector -->
+<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 20px;">
+    <button class="game-selector-btn active" data-game="stars" style="padding: 12px; border: 2px solid #4F46E5; background: #EEF2FF; color: #4F46E5; border-radius: 12px; font-weight: 600; cursor: pointer; text-align: center; font-size: 14px;">
+        ⭐ Star Catcher
+    </button>
+    <button class="game-selector-btn" data-game="math" style="padding: 12px; border: 2px solid #E5E7EB; background: white; color: #6B7280; border-radius: 12px; font-weight: 600; cursor: pointer; text-align: center; font-size: 14px;">
+        🧮 Math Quest
+    </button>
+    <button class="game-selector-btn" data-game="music" style="padding: 12px; border: 2px solid #E5E7EB; background: white; color: #6B7280; border-radius: 12px; font-weight: 600; cursor: pointer; text-align: center; font-size: 14px;">
+        🎵 Beat Master
+    </button>
+    <button class="game-selector-btn" data-game="leaderboard" style="padding: 12px; border: 2px solid #E5E7EB; background: white; color: #6B7280; border-radius: 12px; font-weight: 600; cursor: pointer; text-align: center; font-size: 14px;">
+        🏆 Leaderboard
+    </button>
+</div>
         
         <!-- ⭐ STAR CATCHER GAME -->
         <div id="game-stars" class="game-content">

@@ -253,21 +253,46 @@ try {
         requireAdmin();
         
         $db = getDb();
-        $stmt = $db->query("
-            SELECT u.id, u.kid_name, u.total_points, u.created_at,
-                   COUNT(DISTINCT d.id) as device_count,
-                   COUNT(DISTINCT kc.id) as chore_count
-            FROM users u
-            LEFT JOIN devices d ON u.id = d.kid_user_id AND d.paired_at IS NOT NULL
-            LEFT JOIN kid_chores kc ON u.id = kc.kid_user_id
-            WHERE u.role = 'kid'
-            GROUP BY u.id
-            ORDER BY u.kid_name
-        ");
+        
+        // Check if is_test_account column exists
+        try {
+            $stmt = $db->query("SELECT is_test_account FROM users LIMIT 1");
+            $hasTestColumn = true;
+        } catch (Exception $e) {
+            $hasTestColumn = false;
+        }
+        
+        if ($hasTestColumn) {
+            $stmt = $db->query("
+                SELECT u.id, u.kid_name, u.total_points, u.created_at,
+                       COALESCE(u.is_test_account, 0) as is_test_account,
+                       COUNT(DISTINCT d.id) as device_count,
+                       COUNT(DISTINCT kc.id) as chore_count
+                FROM users u
+                LEFT JOIN devices d ON u.id = d.kid_user_id AND d.paired_at IS NOT NULL
+                LEFT JOIN kid_chores kc ON u.id = kc.kid_user_id
+                WHERE u.role = 'kid'
+                GROUP BY u.id
+                ORDER BY u.kid_name
+            ");
+        } else {
+            $stmt = $db->query("
+                SELECT u.id, u.kid_name, u.total_points, u.created_at,
+                       0 as is_test_account,
+                       COUNT(DISTINCT d.id) as device_count,
+                       COUNT(DISTINCT kc.id) as chore_count
+                FROM users u
+                LEFT JOIN devices d ON u.id = d.kid_user_id AND d.paired_at IS NOT NULL
+                LEFT JOIN kid_chores kc ON u.id = kc.kid_user_id
+                WHERE u.role = 'kid'
+                GROUP BY u.id
+                ORDER BY u.kid_name
+            ");
+        }
         
         jsonResponse(true, $stmt->fetchAll());
         break;
-    
+
     case 'delete_kid':
         requireAdmin();
         
@@ -284,6 +309,108 @@ try {
         jsonResponse(true, ['message' => 'Kid deleted']);
         break;
     
+    case 'reset_kid_points':
+        requireAdmin();
+        
+        $kidId = intval($input['kid_id'] ?? 0);
+        $clearHistory = intval($input['clear_history'] ?? 0);
+        
+        if (!$kidId) {
+            jsonResponse(false, null, 'Kid ID required');
+        }
+        
+        $db = getDb();
+        
+        // Verify kid exists
+        $stmt = $db->prepare("SELECT kid_name FROM users WHERE id = ? AND role = 'kid'");
+        $stmt->execute([$kidId]);
+        $kid = $stmt->fetch();
+        
+        if (!$kid) {
+            jsonResponse(false, null, 'Kid not found');
+        }
+        
+        // Reset points
+        $stmt = $db->prepare("UPDATE users SET total_points = 0 WHERE id = ?");
+        $stmt->execute([$kidId]);
+        
+        if ($clearHistory) {
+            // Clear submission history
+            $stmt = $db->prepare("DELETE FROM submissions WHERE kid_user_id = ?");
+            $stmt->execute([$kidId]);
+            
+            // Clear redemption history
+            $stmt = $db->prepare("DELETE FROM redemptions WHERE kid_user_id = ?");
+            $stmt->execute([$kidId]);
+            
+            // Clear quest progress
+            $stmt = $db->prepare("DELETE FROM kid_quest_progress WHERE kid_user_id = ?");
+            $stmt->execute([$kidId]);
+            
+            $stmt = $db->prepare("DELETE FROM kid_quest_task_status WHERE kid_user_id = ?");
+            $stmt->execute([$kidId]);
+            
+            // Reset streaks
+            $stmt = $db->prepare("UPDATE kid_chores SET streak_count = 0, last_completed_at = NULL WHERE kid_user_id = ?");
+            $stmt->execute([$kidId]);
+            
+            // Clear game scores
+            $stmt = $db->prepare("DELETE FROM game_scores WHERE kid_user_id = ?");
+            $stmt->execute([$kidId]);
+        }
+        
+        logAudit($_SESSION['admin_id'], 'reset_kid_points', [
+            'kid_id' => $kidId, 
+            'kid_name' => $kid['kid_name'],
+            'clear_history' => $clearHistory
+        ]);
+        
+        jsonResponse(true, ['message' => 'Points reset successfully']);
+        break;
+    
+    case 'toggle_kid_test_mode':
+        requireAdmin();
+        
+        $kidId = intval($input['kid_id'] ?? 0);
+        
+        if (!$kidId) {
+            jsonResponse(false, null, 'Kid ID required');
+        }
+        
+        $db = getDb();
+        
+        // Check if is_test_account column exists, if not add it
+        try {
+            $stmt = $db->query("SELECT is_test_account FROM users LIMIT 1");
+        } catch (Exception $e) {
+            // Column doesn't exist, add it
+            $db->exec("ALTER TABLE users ADD COLUMN is_test_account INTEGER DEFAULT 0");
+        }
+        
+        // Toggle test mode
+        $stmt = $db->prepare("
+            UPDATE users 
+            SET is_test_account = CASE WHEN is_test_account = 1 THEN 0 ELSE 1 END 
+            WHERE id = ? AND role = 'kid'
+        ");
+        $stmt->execute([$kidId]);
+        
+        // Get new status
+        $stmt = $db->prepare("SELECT is_test_account FROM users WHERE id = ?");
+        $stmt->execute([$kidId]);
+        $result = $stmt->fetch();
+        
+        logAudit($_SESSION['admin_id'], 'toggle_test_mode', [
+            'kid_id' => $kidId,
+            'is_test' => $result['is_test_account']
+        ]);
+        
+        jsonResponse(true, [
+            'message' => 'Test mode updated',
+            'is_test_account' => $result['is_test_account']
+        ]);
+        break;
+        
     case 'generate_pairing_code':
         requireAdmin();
         
@@ -353,6 +480,60 @@ try {
         jsonResponse(true, ['message' => 'Device revoked']);
         break;
     
+    case 'clear_unpaired_codes':
+        requireAdmin();
+        
+        $db = getDb();
+        // Delete all devices that have never been paired
+        $stmt = $db->prepare("DELETE FROM devices WHERE paired_at IS NULL");
+        $stmt->execute();
+        $deletedCount = $stmt->rowCount();
+        
+        logAudit($_SESSION['admin_id'], 'clear_unpaired_codes', ['deleted_count' => $deletedCount]);
+        jsonResponse(true, ['message' => "Cleared $deletedCount unpaired code(s)", 'count' => $deletedCount]);
+        break;
+
+    case 'clear_stale_devices':
+        requireAdmin();
+        
+        $daysInactive = intval($input['days'] ?? 30);
+        if ($daysInactive < 1) $daysInactive = 30;
+        
+        $db = getDb();
+        
+        // First, get the list of devices to be deleted (for logging)
+        $stmt = $db->prepare("
+            SELECT d.id, d.device_label, u.kid_name, d.last_seen_at
+            FROM devices d
+            JOIN users u ON d.kid_user_id = u.id
+            WHERE d.paired_at IS NOT NULL 
+            AND (d.last_seen_at IS NULL OR d.last_seen_at < datetime('now', '-' || ? || ' days'))
+        ");
+        $stmt->execute([$daysInactive]);
+        $staleDevices = $stmt->fetchAll();
+        
+        // Delete them
+        $stmt = $db->prepare("
+            DELETE FROM devices 
+            WHERE paired_at IS NOT NULL 
+            AND (last_seen_at IS NULL OR last_seen_at < datetime('now', '-' || ? || ' days'))
+        ");
+        $stmt->execute([$daysInactive]);
+        $deletedCount = $stmt->rowCount();
+        
+        logAudit($_SESSION['admin_id'], 'clear_stale_devices', [
+            'days' => $daysInactive,
+            'deleted_count' => $deletedCount,
+            'devices' => $staleDevices
+        ]);
+        
+        jsonResponse(true, [
+            'message' => "Cleared $deletedCount stale device(s)",
+            'count' => $deletedCount,
+            'devices' => $staleDevices
+        ]);
+        break;
+        
     case 'pair_device':
     checkRateLimit('pair_device', 5, 1);
     
@@ -1524,6 +1705,95 @@ case 'kid_feed':
         ]);
         break;
     
+    case 'family_analytics':
+        requireAdmin();
+        
+        $db = getDb();
+        
+        // Check if test column exists
+        try {
+            $db->query("SELECT is_test_account FROM users LIMIT 1");
+            $testFilter = "AND COALESCE(u.is_test_account, 0) = 0";
+        } catch (Exception $e) {
+            $testFilter = "";
+        }
+        
+        // Get point earnings by kid over last 30 days (exclude test accounts)
+        $stmt = $db->query("
+            SELECT 
+                u.kid_name,
+                u.id as kid_id,
+                u.total_points,
+                DATE(s.reviewed_at) as date,
+                SUM(s.points_awarded) as daily_points
+            FROM submissions s
+            JOIN users u ON s.kid_user_id = u.id
+            WHERE s.status = 'approved' 
+            AND s.reviewed_at >= date('now', '-30 days')
+            $testFilter
+            GROUP BY u.id, DATE(s.reviewed_at)
+            ORDER BY date DESC
+        ");
+        $dailyEarnings = $stmt->fetchAll();
+        
+        // Get total points earned by kid (all time, exclude test accounts)
+        $stmt = $db->query("
+            SELECT 
+                u.kid_name,
+                u.id as kid_id,
+                u.total_points,
+                COALESCE(SUM(s.points_awarded), 0) as total_earned,
+                COALESCE(SUM(CASE WHEN s.reviewed_at >= date('now', '-7 days') THEN s.points_awarded ELSE 0 END), 0) as week_earned,
+                COALESCE(SUM(CASE WHEN s.reviewed_at >= date('now', '-30 days') THEN s.points_awarded ELSE 0 END), 0) as month_earned
+            FROM users u
+            LEFT JOIN submissions s ON u.id = s.kid_user_id AND s.status = 'approved'
+            WHERE u.role = 'kid' $testFilter
+            GROUP BY u.id
+            ORDER BY u.kid_name
+        ");
+        $kidStats = $stmt->fetchAll();
+        
+        // Get redemption history (exclude test accounts)
+        $stmt = $db->query("
+            SELECT 
+                u.kid_name,
+                r.title as reward_title,
+                r.cost_points,
+                rd.requested_at,
+                rd.status
+            FROM redemptions rd
+            JOIN users u ON rd.kid_user_id = u.id
+            JOIN rewards r ON rd.reward_id = r.id
+            WHERE rd.requested_at >= date('now', '-30 days')
+            $testFilter
+            ORDER BY rd.requested_at DESC
+        ");
+        $recentRedemptions = $stmt->fetchAll();
+        
+        // Get quest completion data (no need to filter - shows all)
+        $stmt = $db->query("
+            SELECT 
+                q.title as quest_title,
+                qt.title as task_title,
+                qt.points as task_points,
+                COUNT(CASE WHEN kqts.status = 'approved' THEN 1 END) as completions
+            FROM quests q
+            JOIN quest_tasks qt ON q.id = qt.quest_id
+            LEFT JOIN kid_quest_task_status kqts ON qt.id = kqts.quest_task_id
+            WHERE q.is_active = 1
+            GROUP BY qt.id
+            ORDER BY q.id, qt.order_index
+        ");
+        $questData = $stmt->fetchAll();
+        
+        jsonResponse(true, [
+            'daily_earnings' => $dailyEarnings,
+            'kid_stats' => $kidStats,
+            'recent_redemptions' => $recentRedemptions,
+            'quest_data' => $questData
+        ]);
+        break;
+
     case 'list_admins':
         requireAdmin();
         
