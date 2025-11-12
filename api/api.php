@@ -1794,6 +1794,51 @@ case 'kid_feed':
         ]);
         break;
 
+    case 'point_economics':
+        requireAdmin();
+        
+        $db = getDb();
+        
+        // Get all active chores with their point values
+        $stmt = $db->query("
+            SELECT 
+                c.id,
+                c.title,
+                c.recurrence_type,
+                c.default_points,
+                COUNT(kc.id) as assigned_count
+            FROM chores c
+            LEFT JOIN kid_chores kc ON c.id = kc.chore_id
+            GROUP BY c.id
+            ORDER BY c.default_points DESC
+        ");
+        $chores = $stmt->fetchAll();
+        
+        // Get all active rewards
+        $stmt = $db->query("
+            SELECT id, title, cost_points
+            FROM rewards
+            WHERE is_active = 1
+            ORDER BY cost_points ASC
+        ");
+        $rewards = $stmt->fetchAll();
+        
+        // Get kids count for projections
+        $stmt = $db->query("
+            SELECT COUNT(*) as kid_count
+            FROM users
+            WHERE role = 'kid'
+            AND COALESCE(is_test_account, 0) = 0
+        ");
+        $kidCount = $stmt->fetch()['kid_count'];
+        
+        jsonResponse(true, [
+            'chores' => $chores,
+            'rewards' => $rewards,
+            'kid_count' => $kidCount
+        ]);
+        break;
+        
     case 'list_admins':
         requireAdmin();
         

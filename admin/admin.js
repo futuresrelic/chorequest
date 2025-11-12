@@ -83,6 +83,9 @@ async function loadTabData(tabName) {
         case 'family-board':
             await loadFamilyBoard();
             break;
+        case 'point-economics':
+            await loadPointEconomics();
+            break;
         case 'kids':
             await loadKids();
             await loadPairingCodes();
@@ -1850,22 +1853,54 @@ async function loadFamilyBoard() {
             .map(reward => {
                 const whoCanAfford = kids.filter(k => k.total_points >= reward.cost_points).map(k => k.kid_name);
                 
-                // Calculate "days to earn" based on average
-                const daysToEarn = avgWeeklyEarnings > 0 ? Math.ceil((reward.cost_points / avgWeeklyEarnings) * 7) : 999;
+                // Calculate days to earn for EACH kid individually based on monthly rate
+                const kidEarningAnalysis = analytics.kid_stats.map(kid => {
+                    const monthlyRate = kid.month_earned; // Points earned in last 30 days
+                    const dailyRate = monthlyRate / 30;
+                    
+                    if (dailyRate <= 0) {
+                        return { name: kid.kid_name, days: 999, rate: 0 };
+                    }
+                    
+                    const pointsNeeded = Math.max(0, reward.cost_points - kid.total_points);
+                    const daysToEarn = Math.ceil(pointsNeeded / dailyRate);
+                    
+                    return { 
+                        name: kid.kid_name, 
+                        days: daysToEarn,
+                        rate: dailyRate,
+                        hasEnough: kid.total_points >= reward.cost_points
+                    };
+                }).sort((a, b) => a.days - b.days); // Sort by fastest earner first
+                
+                // Find the fastest active earner
+                const fastestEarner = kidEarningAnalysis.find(k => k.rate > 0);
                 
                 let analysisClass = 'realistic';
                 let analysisText = '';
                 
-                if (daysToEarn <= 7) {
+                if (whoCanAfford.length > 0) {
                     analysisClass = 'realistic';
-                    analysisText = `✅ Achievable in ~${daysToEarn} days at current rate`;
-                } else if (daysToEarn <= 30) {
+                    analysisText = `✅ Available now for ${whoCanAfford.join(', ')}!`;
+                } else if (fastestEarner && fastestEarner.days <= 7) {
+                    analysisClass = 'realistic';
+                    analysisText = `✅ ${fastestEarner.name} can earn this in ~${fastestEarner.days} day${fastestEarner.days === 1 ? '' : 's'}`;
+                } else if (fastestEarner && fastestEarner.days <= 30) {
                     analysisClass = 'challenging';
-                    analysisText = `⚠️ Takes ~${daysToEarn} days to earn`;
+                    analysisText = `⚠️ ${fastestEarner.name} can earn this in ~${fastestEarner.days} days`;
+                } else if (fastestEarner) {
+                    analysisClass = 'unrealistic';
+                    analysisText = `❌ Takes ${fastestEarner.days}+ days - consider lowering cost`;
                 } else {
                     analysisClass = 'unrealistic';
-                    analysisText = `❌ Takes ${daysToEarn}+ days - consider lowering cost`;
+                    analysisText = `❌ No active earners - kids need to complete chores!`;
                 }
+                
+                // Build detailed breakdown
+                const earnerBreakdown = kidEarningAnalysis
+                    .filter(k => k.rate > 0 && !k.hasEnough)
+                    .map(k => `${k.name}: ${k.days}d`)
+                    .join(' • ');
                 
                 return `
                     <div class="family-reward-card ${whoCanAfford.length > 0 ? 'affordable' : ''}">
@@ -1876,12 +1911,13 @@ async function loadFamilyBoard() {
                         ${whoCanAfford.length > 0 ? `<div class="can-afford">✓ ${whoCanAfford.join(', ')} can afford!</div>` : ''}
                         <div class="reward-analysis ${analysisClass}">
                             ${analysisText}
+                            ${earnerBreakdown && !whoCanAfford.length ? `<div style="font-size: 11px; margin-top: 5px; opacity: 0.8;">${earnerBreakdown}</div>` : ''}
                         </div>
                     </div>
                 `;
             }).join('');
     }
-    
+
     // 5. QUESTS WITH TOTAL VALUE
     if (questsResult.ok) {
         const questsList = document.getElementById('family-quests-list');
@@ -1948,6 +1984,130 @@ function getRewardEmoji(title) {
     if (lower.includes('pet')) return '🐶';
     if (lower.includes('trip') || lower.includes('outing')) return '🚗';
     return '🎁';
+}
+
+// Point Economics
+async function loadPointEconomics() {
+    const result = await apiCall('point_economics');
+    
+    if (!result.ok) {
+        document.getElementById('earning-potential-grid').innerHTML = '<p>Error loading data</p>';
+        return;
+    }
+    
+    const { chores, rewards, kid_count } = result.data;
+    
+    // Calculate earning potential
+    let dailyPotential = 0;
+    let weeklyPotential = 0;
+    let monthlyPotential = 0;
+    
+    chores.forEach(chore => {
+        const timesPerKid = chore.assigned_count; // Number of kids assigned
+        
+        switch(chore.recurrence_type) {
+            case 'daily':
+                dailyPotential += chore.default_points * timesPerKid;
+                weeklyPotential += chore.default_points * timesPerKid * 7;
+                monthlyPotential += chore.default_points * timesPerKid * 30;
+                break;
+            case 'weekly':
+                weeklyPotential += chore.default_points * timesPerKid;
+                monthlyPotential += chore.default_points * timesPerKid * 4;
+                break;
+            case 'monthly':
+                monthlyPotential += chore.default_points * timesPerKid;
+                break;
+            case 'once':
+                // One-time chores counted toward monthly potential
+                monthlyPotential += chore.default_points * timesPerKid;
+                break;
+        }
+    });
+    
+    // Display earning potential
+    document.getElementById('earning-potential-grid').innerHTML = `
+        <div class="earning-potential-card">
+            <div class="period">Per Day</div>
+            <div class="amount">${dailyPotential}</div>
+            <div class="label">max points/day</div>
+        </div>
+        <div class="earning-potential-card">
+            <div class="period">Per Week</div>
+            <div class="amount">${weeklyPotential}</div>
+            <div class="label">max points/week</div>
+        </div>
+        <div class="earning-potential-card">
+            <div class="period">Per Month</div>
+            <div class="amount">${monthlyPotential}</div>
+            <div class="label">max points/month</div>
+        </div>
+        <div class="earning-potential-card" style="border-color: #10B981;">
+            <div class="period">Per Kid/Month</div>
+            <div class="amount" style="color: #10B981;">${kid_count > 0 ? Math.round(monthlyPotential / kid_count) : 0}</div>
+            <div class="label">average if all complete</div>
+        </div>
+    `;
+    
+    // Display chore values
+    const choreValuesHtml = chores.map(chore => {
+        const freqClass = `freq-${chore.recurrence_type}`;
+        const freqLabel = chore.recurrence_type.charAt(0).toUpperCase() + chore.recurrence_type.slice(1);
+        
+        return `
+            <div class="chore-value-row">
+                <div class="chore-info">
+                    <div class="chore-title">${chore.title}</div>
+                    <div class="chore-meta">
+                        <span class="frequency-badge ${freqClass}">${freqLabel}</span>
+                        Assigned to ${chore.assigned_count} kid${chore.assigned_count === 1 ? '' : 's'}
+                    </div>
+                </div>
+                <div class="points-badge">${chore.default_points} pts</div>
+            </div>
+        `;
+    }).join('');
+    
+    document.getElementById('chore-values-list').innerHTML = choreValuesHtml || '<p style="color: #6B7280;">No chores created yet</p>';
+    
+    // Build chore-to-reward matrix
+    if (chores.length === 0 || rewards.length === 0) {
+        document.getElementById('chore-reward-matrix').innerHTML = '<p style="color: #6B7280;">Create chores and rewards to see the matrix</p>';
+        return;
+    }
+    
+    let matrixHtml = '<table class="matrix-table"><thead><tr>';
+    matrixHtml += '<th class="chore-name-col">Chore</th>';
+    
+    rewards.forEach(reward => {
+        matrixHtml += `<th>${reward.title}<br><span style="font-weight: normal; font-size: 12px;">${reward.cost_points} pts</span></th>`;
+    });
+    
+    matrixHtml += '</tr></thead><tbody>';
+    
+    chores.forEach(chore => {
+        matrixHtml += '<tr>';
+        matrixHtml += `<td class="chore-name-col">${chore.title} <span style="color: #6B7280; font-weight: normal;">(${chore.default_points} pts)</span></td>`;
+        
+        rewards.forEach(reward => {
+            const timesNeeded = Math.ceil(reward.cost_points / chore.default_points);
+            
+            let cellClass = '';
+            if (timesNeeded === 1) cellClass = 'easy';
+            else if (timesNeeded <= 5) cellClass = 'easy';
+            else if (timesNeeded <= 15) cellClass = 'medium';
+            else if (timesNeeded <= 50) cellClass = 'hard';
+            else cellClass = 'impossible';
+            
+            matrixHtml += `<td><span class="matrix-cell ${cellClass}">${timesNeeded}×</span></td>`;
+        });
+        
+        matrixHtml += '</tr>';
+    });
+    
+    matrixHtml += '</tbody></table>';
+    
+    document.getElementById('chore-reward-matrix').innerHTML = matrixHtml;
 }
 
 // Initialize

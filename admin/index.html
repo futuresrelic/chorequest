@@ -3,13 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
     <title>Family Chores - Admin</title>
     
     <!-- Favicon -->
     <link rel="icon" type="image/x-icon" href="/assets/admin-favicon.ico">
     <link rel="shortcut icon" href="/assets/admin-favicon.ico">
     
-    <link rel="stylesheet" href="admin.css">
+    <!-- CSS will be loaded with version -->
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#4F46E5">
     <meta name="mobile-web-app-capable" content="yes">
@@ -53,18 +56,19 @@
         <nav class="tabs">
             <button class="tab-btn active" data-tab="dashboard">Dashboard</button>
             <button class="tab-btn" data-tab="family-board">📊 Family Board</button>
+            <button class="tab-btn" data-tab="point-economics">💎 Point Economics</button>
             <button class="tab-btn" data-tab="kids">Kids</button>
-          <button class="tab-btn" data-tab="chores">Chores</button>
-          <button class="tab-btn" data-tab="quests">Quests</button>
-           <button class="tab-btn" data-tab="rewards">Rewards</button>
-           <button class="tab-btn" data-tab="submissions">Submissions</button>
-           <button class="tab-btn" data-tab="quest-tasks">Quest Tasks</button>
-           <button class="tab-btn" data-tab="themes">Themes</button>
-           <button class="tab-btn" data-tab="redemptions">Redemptions</button>
-           <button class="tab-btn" data-tab="families">Families</button>
-           <button class="tab-btn" data-tab="settings">Settings</button>
-           <button class="tab-btn" data-tab="admins">Admins</button>
-           <button class="tab-btn" data-tab="setup-wizard">🧙‍♂️ Setup Wizard</button>
+            <button class="tab-btn" data-tab="chores">Chores</button>
+            <button class="tab-btn" data-tab="quests">Quests</button>
+            <button class="tab-btn" data-tab="rewards">Rewards</button>
+            <button class="tab-btn" data-tab="submissions">Submissions</button>
+            <button class="tab-btn" data-tab="quest-tasks">Quest Tasks</button>
+            <button class="tab-btn" data-tab="themes">Themes</button>
+            <button class="tab-btn" data-tab="redemptions">Redemptions</button>
+            <button class="tab-btn" data-tab="families">Families</button>
+            <button class="tab-btn" data-tab="settings">Settings</button>
+            <button class="tab-btn" data-tab="admins">Admins</button>
+            <button class="tab-btn" data-tab="setup-wizard">🧙‍♂️ Setup Wizard</button>
         </nav>
 
         <main>
@@ -132,6 +136,28 @@
                 <div id="family-quests-list" style="display: flex; flex-direction: column; gap: 20px;"></div>
             </section>
 
+            <!-- Point Economics Tab -->
+            <section id="tab-point-economics" class="tab-content">
+                <div class="section-header">
+                    <h2>💎 Point Economics</h2>
+                    <p style="color: #6B7280; margin-top: 5px;">Earning potential & chore-to-reward analysis</p>
+                </div>
+                
+                <!-- Earning Potential -->
+                <h3 style="margin: 30px 0 15px 0;">📊 Maximum Earning Potential</h3>
+                <p style="color: #6B7280; margin-bottom: 20px;">If all assigned chores are completed by all kids:</p>
+                <div id="earning-potential-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 40px;"></div>
+                
+                <!-- Chore Values -->
+                <h3 style="margin: 30px 0 15px 0;">✅ Chore Point Values</h3>
+                <div id="chore-values-list" style="margin-bottom: 40px;"></div>
+                
+                <!-- Chore to Reward Matrix -->
+                <h3 style="margin: 30px 0 15px 0;">🎯 Chore-to-Reward Matrix</h3>
+                <p style="color: #6B7280; margin-bottom: 20px;">How many times each chore must be completed to earn each reward:</p>
+                <div id="chore-reward-matrix" style="overflow-x: auto;"></div>
+            </section>
+            
             <!-- Kids Tab -->
             <section id="tab-kids" class="tab-content">
                 <div class="section-header">
@@ -385,17 +411,31 @@
         </div>
     </div>
 
-    <script>
-        // Auto-versioning system
+<script>
+        // Enhanced auto-versioning system - loads CSS and JS with cache-busting
         fetch('/api/version.php')
             .then(r => r.json())
             .then(data => {
+                // Load CSS with version
+                const css = document.createElement('link');
+                css.rel = 'stylesheet';
+                css.href = `admin.css?v=${data.timestamp}`;
+                document.head.appendChild(css);
+                
+                // Load JS with version
                 const script = document.createElement('script');
                 script.src = `admin.js?v=${data.timestamp}`;
                 document.body.appendChild(script);
+                
+                console.log('✅ Loaded version:', data.version, 'timestamp:', data.timestamp);
             })
             .catch(() => {
                 // Fallback if version fetch fails
+                const css = document.createElement('link');
+                css.rel = 'stylesheet';
+                css.href = 'admin.css?v=' + Date.now();
+                document.head.appendChild(css);
+                
                 const script = document.createElement('script');
                 script.src = 'admin.js?v=' + Date.now();
                 document.body.appendChild(script);

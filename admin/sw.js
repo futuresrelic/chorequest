@@ -1,20 +1,107 @@
-const CACHE_NAME = 'family-chores-admin-v3';
+// Fetch version from central system
+let CACHE_VERSION = 'v1.0.0';
+let CACHE_NAME = `admin-app-${CACHE_VERSION}`;
+
 const urlsToCache = [
-  '/admin/index.html',
   '/admin/admin.css',
-  '/admin/admin.js'
+  '/admin/manifest.json',
+  '/assets/admin-icon-192.png',
+  '/assets/admin-icon-512.png'
 ];
 
-self.addEventListener('install', event => {
+// Get current version from server
+async function getCacheVersion() {
+  try {
+    const response = await fetch('/api/version.php', { cache: 'no-store' });
+    const data = await response.json();
+    CACHE_VERSION = `v${data.version}`;
+    CACHE_NAME = `admin-app-${CACHE_VERSION}`;
+    return CACHE_VERSION;
+  } catch (error) {
+    console.error('Failed to fetch version:', error);
+    return CACHE_VERSION;
+  }
+}
+
+// Install - cache files
+self.addEventListener('install', (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME)
-      .then(cache => cache.addAll(urlsToCache))
+    getCacheVersion()
+      .then(() => caches.open(CACHE_NAME))
+      .then((cache) => cache.addAll(urlsToCache))
+      .then(() => self.skipWaiting())
   );
 });
 
-self.addEventListener('fetch', event => {
-  event.respondWith(
-    caches.match(event.request)
-      .then(response => response || fetch(event.request))
+// Activate - clean old caches
+self.addEventListener('activate', (event) => {
+  event.waitUntil(
+    getCacheVersion()
+      .then(() => caches.keys())
+      .then((cacheNames) => {
+        return Promise.all(
+          cacheNames.map((cacheName) => {
+            if (cacheName !== CACHE_NAME && cacheName.startsWith('admin-app-')) {
+              console.log('Deleting old cache:', cacheName);
+              return caches.delete(cacheName);
+            }
+          })
+        );
+      })
+      .then(() => self.clients.claim())
   );
+});
+
+// Fetch - Network first for HTML and API, cache for assets
+self.addEventListener('fetch', (event) => {
+  // Only handle GET requests
+  if (event.request.method !== 'GET') {
+    return;
+  }
+  
+  // Don't cache non-http requests
+  if (!event.request.url.startsWith('http')) {
+    return;
+  }
+  
+  const url = new URL(event.request.url);
+  
+  // NEVER cache HTML files or API endpoints
+  if (url.pathname.endsWith('.html') || 
+      url.pathname.includes('/api/') ||
+      url.pathname === '/admin/' ||
+      url.pathname === '/admin') {
+    event.respondWith(fetch(event.request, { cache: 'no-store' }));
+    return;
+  }
+  
+  // For everything else: Network first, fallback to cache
+  event.respondWith(
+    fetch(event.request)
+      .then((response) => {
+        if (!response || response.status !== 200 || response.type === 'error') {
+          return response;
+        }
+        
+        const responseToCache = response.clone();
+        
+        getCacheVersion().then(() => {
+          caches.open(CACHE_NAME).then((cache) => {
+            cache.put(event.request, responseToCache);
+          });
+        });
+        
+        return response;
+      })
+      .catch(() => {
+        return caches.match(event.request);
+      })
+  );
+});
+
+// Listen for message to skip waiting
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'SKIP_WAITING') {
+    self.skipWaiting();
+  }
 });

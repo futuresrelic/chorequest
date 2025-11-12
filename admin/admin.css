@@ -830,3 +830,143 @@ h3 {
     margin-top: 15px;
     border: 2px solid #FCD34D;
 }
+
+/* Point Economics Styles */
+.earning-potential-card {
+    background: white;
+    border: 3px solid #4F46E5;
+    border-radius: 16px;
+    padding: 20px;
+    text-align: center;
+}
+
+.earning-potential-card .period {
+    font-size: 14px;
+    color: #6B7280;
+    margin-bottom: 5px;
+}
+
+.earning-potential-card .amount {
+    font-size: 36px;
+    font-weight: bold;
+    color: #4F46E5;
+}
+
+.earning-potential-card .label {
+    font-size: 12px;
+    color: #6B7280;
+    margin-top: 5px;
+}
+
+.chore-value-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px;
+    background: white;
+    border-radius: 12px;
+    margin-bottom: 10px;
+    border: 2px solid #E5E7EB;
+}
+
+.chore-value-row .chore-info {
+    flex: 1;
+}
+
+.chore-value-row .chore-title {
+    font-weight: 600;
+    font-size: 16px;
+    margin-bottom: 5px;
+}
+
+.chore-value-row .chore-meta {
+    font-size: 13px;
+    color: #6B7280;
+}
+
+.chore-value-row .points-badge {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-size: 18px;
+    font-weight: bold;
+}
+
+.chore-value-row .frequency-badge {
+    display: inline-block;
+    padding: 4px 8px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    margin-left: 10px;
+}
+
+.freq-daily { background: #DBEAFE; color: #1E40AF; }
+.freq-weekly { background: #D1FAE5; color: #065F46; }
+.freq-monthly { background: #FEF3C7; color: #92400E; }
+.freq-once { background: #F3F4F6; color: #374151; }
+
+.matrix-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: white;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.matrix-table th {
+    background: #4F46E5;
+    color: white;
+    padding: 12px;
+    text-align: left;
+    font-weight: 600;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+
+.matrix-table td {
+    padding: 12px;
+    border-bottom: 1px solid #E5E7EB;
+    text-align: center;
+}
+
+.matrix-table tr:hover {
+    background: #F9FAFB;
+}
+
+.matrix-table .chore-name-col {
+    font-weight: 600;
+    text-align: left;
+    min-width: 200px;
+}
+
+.matrix-cell {
+    display: inline-block;
+    padding: 6px 12px;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 14px;
+}
+
+.matrix-cell.easy {
+    background: #D1FAE5;
+    color: #065F46;
+}
+
+.matrix-cell.medium {
+    background: #FEF3C7;
+    color: #92400E;
+}
+
+.matrix-cell.hard {
+    background: #FEE2E2;
+    color: #991B1B;
+}
+
+.matrix-cell.impossible {
+    background: #F3F4F6;
+    color: #9CA3AF;
+}
