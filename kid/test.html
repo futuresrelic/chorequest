@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Button Test</title>
+    <style>
+        body { padding: 20px; font-family: sans-serif; }
+        .test-btn { 
+            padding: 20px 40px; 
+            font-size: 18px; 
+            background: #4F46E5; 
+            color: white; 
+            border: none; 
+            border-radius: 8px;
+            display: block;
+            margin: 20px 0;
+            width: 100%;
+        }
+    </style>
+</head>
+<body>
+    <h2>Button Test</h2>
+    <button class="test-btn" id="test1">Test Click</button>
+    <button class="test-btn" id="test2">Test Touch</button>
+    <div id="output"></div>
+    
+    <script>
+        const output = document.getElementById('output');
+        
+        document.getElementById('test1').addEventListener('click', function() {
+            output.innerHTML += '<p>Click worked!</p>';
+            alert('Click event fired!');
+        });
+        
+        document.getElementById('test2').addEventListener('touchend', function(e) {
+            e.preventDefault();
+            output.innerHTML += '<p>Touch worked!</p>';
+            alert('Touch event fired!');
+        });
+    </script>
+</body>
+</html>

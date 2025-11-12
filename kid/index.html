@@ -3,6 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
     <title>My Chores</title>
     
     <!-- Google Fonts for Fun Styles -->
@@ -14,7 +17,6 @@
     <link rel="icon" type="image/x-icon" href="/assets/kid-favicon.ico">
     <link rel="shortcut icon" href="/assets/kid-favicon.ico">
     
-    <link rel="stylesheet" href="kid.css?v=3.0">
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#4F46E5">
     <meta name="mobile-web-app-capable" content="yes">
@@ -706,17 +708,31 @@
     </div>
 </div>
 
-    <script>
-        // Auto-versioning system
+<script>
+        // Enhanced auto-versioning system - loads CSS and JS with cache-busting
         fetch('/api/version.php')
         .then(r => r.json())
         .then(data => {
+            // Load CSS with version
+            const css = document.createElement('link');
+            css.rel = 'stylesheet';
+            css.href = `kid.css?v=${data.timestamp}`;
+            document.head.appendChild(css);
+            
+            // Load JS with version
             const script = document.createElement('script');
             script.src = `kid.js?v=${data.timestamp}`;
             document.body.appendChild(script);
+            
+            console.log('✅ Loaded version:', data.version, 'timestamp:', data.timestamp);
         })
         .catch(() => {
             // Fallback if version fetch fails
+            const css = document.createElement('link');
+            css.rel = 'stylesheet';
+            css.href = 'kid.css?v=' + Date.now();
+            document.head.appendChild(css);
+            
             const script = document.createElement('script');
             script.src = 'kid.js?v=' + Date.now();
             document.body.appendChild(script);
@@ -724,13 +740,24 @@
 </script>
 
 <script>
-    // PWA Update Detection using Central Version System
+    // PWA Update Detection - Check only when app becomes active
     let newWorker;
     let currentVersion = null;
+    let lastCheckTime = 0;
+    const CHECK_INTERVAL = 5 * 60 * 1000; // 5 minutes
     
     async function checkForUpdates() {
+        const now = Date.now();
+        
+        // Don't check if we checked less than 5 minutes ago
+        if (now - lastCheckTime < CHECK_INTERVAL) {
+            return;
+        }
+        
+        lastCheckTime = now;
+        
         try {
-            const response = await fetch('/api/version.php');
+            const response = await fetch('/api/version.php', { cache: 'no-store' });
             const data = await response.json();
             const serverVersion = data.version;
             
@@ -738,7 +765,7 @@
                 currentVersion = serverVersion;
                 console.log('Initial version:', currentVersion);
             } else if (serverVersion !== currentVersion) {
-                console.log('New version detected:', serverVersion, '(was:', currentVersion + ')');
+                console.log('🎉 New version detected:', serverVersion, '(was:', currentVersion + ')');
                 
                 // Show update button
                 const updateBtn = document.getElementById('update-btn');
@@ -759,52 +786,33 @@
             .then((reg) => {
                 console.log('Service Worker Registered');
                 
-                // Check version immediately
+                // Check immediately
                 checkForUpdates();
                 
-                // Check for updates every 30 seconds
-                setInterval(() => {
+                // Check when page becomes visible (tab switching back)
+                document.addEventListener('visibilitychange', () => {
+                    if (!document.hidden) {
+                        checkForUpdates();
+                    }
+                });
+                
+                // Also check when window regains focus
+                window.addEventListener('focus', () => {
                     checkForUpdates();
-                    reg.update();
-                }, 30000);
+                });
                 
                 reg.addEventListener('updatefound', () => {
                     newWorker = reg.installing;
                     
                     newWorker.addEventListener('statechange', () => {
                         if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                            // New service worker installed
-                            const updateBtn = document.getElementById('update-btn');
-                            if (updateBtn) {
-                                updateBtn.style.display = 'flex';
-                                updateBtn.classList.add('pulse-animation');
-                            }
+                            console.log('New service worker installed, prompting update...');
+                            checkForUpdates();
                         }
                     });
                 });
             })
             .catch(err => console.log('Service Worker Registration Failed:', err));
-        
-        // Handle update button click
-        document.addEventListener('DOMContentLoaded', () => {
-            const updateBtn = document.getElementById('update-btn');
-            if (updateBtn) {
-                updateBtn.addEventListener('click', () => {
-                    if (newWorker) {
-                        newWorker.postMessage({ type: 'SKIP_WAITING' });
-                    }
-                    
-                    navigator.serviceWorker.addEventListener('controllerchange', () => {
-                        window.location.reload();
-                    });
-                    
-                    // Force reload even if service worker doesn't respond
-                    setTimeout(() => {
-                        window.location.reload();
-                    }, 1000);
-                });
-            }
-        });
     }
 </script>
 </body>

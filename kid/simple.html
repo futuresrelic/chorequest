@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kid Chores - Simple</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            font-family: Arial, sans-serif; 
+            padding: 20px; 
+            background: #f5f5f5;
+        }
+        .container { max-width: 600px; margin: 0 auto; }
+        .card { 
+            background: white; 
+            padding: 20px; 
+            margin: 15px 0; 
+            border-radius: 8px; 
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        h1, h2 { margin-bottom: 15px; }
+        input { 
+            width: 100%; 
+            padding: 12px; 
+            font-size: 16px; 
+            border: 2px solid #ddd; 
+            border-radius: 4px; 
+            margin-bottom: 10px;
+        }
+        button { 
+            width: 100%; 
+            padding: 15px; 
+            font-size: 16px; 
+            font-weight: bold;
+            border: none; 
+            border-radius: 4px; 
+            cursor: pointer; 
+            margin: 5px 0;
+        }
+        .btn-primary { background: #4F46E5; color: white; }
+        .btn-success { background: #10B981; color: white; }
+        .btn-disabled { background: #ccc; color: #666; }
+        .error { color: red; margin-top: 10px; }
+        .success { color: green; margin-top: 10px; }
+        .badge { 
+            display: inline-block; 
+            padding: 4px 10px; 
+            background: #EEF2FF; 
+            color: #4F46E5; 
+            border-radius: 12px; 
+            font-size: 14px; 
+            margin: 5px 5px 5px 0;
+        }
+        .points { 
+            font-size: 24px; 
+            font-weight: bold; 
+            color: #4F46E5; 
+            text-align: center;
+            margin: 10px 0;
+        }
+        .hidden { display: none; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Pairing Screen -->
+        <div id="pairing-screen">
+            <div class="card">
+                <h1>🎯 Family Chores</h1>
+                <p>Enter your pairing code:</p>
+                <input type="text" id="code" placeholder="Enter 6-digit code" maxlength="6">
+                <button class="btn-primary" onclick="pair()">Pair Device</button>
+                <div id="pair-error" class="error"></div>
+            </div>
+        </div>
+
+        <!-- App Screen -->
+        <div id="app-screen" class="hidden">
+            <div class="card">
+                <h1 id="kid-name">Loading...</h1>
+                <div class="points" id="points">0 ⭐</div>
+                <button class="btn-primary" onclick="loadData()">🔄 Refresh</button>
+            </div>
+
+            <h2>Today's Chores</h2>
+            <div id="chores"></div>
+
+            <h2>Active Quests</h2>
+            <div id="quests"></div>
+        </div>
+    </div>
+
+    <script>
+        const API = '../api/api.php';
+
+        // Simple API call
+        async function api(action, data = {}) {
+            try {
+                const res = await fetch(API, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action, ...data })
+                });
+                return await res.json();
+            } catch (e) {
+                alert('Network error: ' + e.message);
+                return { ok: false };
+            }
+        }
+
+        // Pairing
+        async function pair() {
+            const code = document.getElementById('code').value.toUpperCase().trim();
+            if (!code) {
+                alert('Please enter a code');
+                return;
+            }
+
+            console.log('Pairing with code:', code);
+            const result = await api('pair_device', { 
+                code, 
+                device_label: 'Desktop Device' 
+            });
+
+            console.log('Pair result:', result);
+
+            if (result.ok) {
+                alert('✅ Paired successfully!');
+                // Force full reload to ensure cookie is set
+                setTimeout(() => location.reload(), 500);
+            } else {
+                document.getElementById('pair-error').textContent = result.error || 'Pairing failed';
+            }
+        }
+
+        // Check if already paired
+        async function checkPaired() {
+            console.log('Checking if paired...');
+            const result = await api('kid_me');
+            console.log('kid_me result:', result);
+
+            if (result.ok) {
+                console.log('Already paired!');
+                document.getElementById('pairing-screen').classList.add('hidden');
+                document.getElementById('app-screen').classList.remove('hidden');
+                document.getElementById('kid-name').textContent = result.data.kid_name;
+                document.getElementById('points').textContent = result.data.total_points + ' ⭐';
+                loadData();
+            } else {
+                console.log('Not paired, showing pairing screen');
+            }
+        }
+
+        // Load chores and quests
+        async function loadData() {
+            const result = await api('kid_feed');
+            if (!result.ok) {
+                alert('Failed to load data');
+                return;
+            }
+
+            const data = result.data;
+            document.getElementById('points').textContent = data.total_points + ' ⭐';
+
+            // Render chores
+            let choresHtml = '';
+            if (data.chores && data.chores.length > 0) {
+                data.chores.forEach(chore => {
+                    const isDue = parseInt(chore.is_due) === 1;
+                    choresHtml += `
+                        <div class="card">
+                            <h3>${chore.title}</h3>
+                            <p>${chore.description || ''}</p>
+                            <div>
+                                <span class="badge">⭐ ${chore.default_points} pts</span>
+                                ${isDue ? '<span class="badge" style="background:#FEE2E2;color:#991B1B;">Due Now!</span>' : ''}
+                            </div>
+                            <button class="btn-${isDue ? 'success' : 'disabled'}" 
+                                    ${isDue ? `onclick="submitChore(${chore.chore_id}, '${chore.title}')"` : 'disabled'}>
+                                ${isDue ? '✅ Submit' : '⏰ Not Due Yet'}
+                            </button>
+                        </div>
+                    `;
+                });
+            } else {
+                choresHtml = '<div class="card">No chores assigned yet!</div>';
+            }
+            document.getElementById('chores').innerHTML = choresHtml;
+
+            // Render quests
+            let questsHtml = '';
+            if (data.quests && data.quests.length > 0) {
+                data.quests.forEach(quest => {
+                    questsHtml += `
+                        <div class="card">
+                            <h3>${quest.title}</h3>
+                            <p>Progress: ${quest.earned_points} / ${quest.total_points} points</p>
+                            <button class="btn-primary" onclick="alert('Quest details: ${quest.title}')">View Tasks</button>
+                        </div>
+                    `;
+                });
+            } else {
+                questsHtml = '<div class="card">No active quests</div>';
+            }
+            document.getElementById('quests').innerHTML = questsHtml;
+        }
+
+        // Submit chore
+        async function submitChore(choreId, choreTitle) {
+            const note = prompt(`Submit "${choreTitle}"\n\nAdd a note (optional):`);
+            if (note === null) return;
+
+            const result = await api('submit_chore_completion', {
+                chore_id: choreId,
+                note: note.trim()
+            });
+
+            if (result.ok) {
+                if (result.data.status === 'approved') {
+                    alert(`🎉 Great job! You earned ${result.data.points_awarded} points!`);
+                } else {
+                    alert('✅ Submitted for review!');
+                }
+                loadData();
+            } else {
+                alert('❌ ' + result.error);
+            }
+        }
+
+        // Initialize on load
+        checkPaired();
+    </script>
+</body>
+</html>
